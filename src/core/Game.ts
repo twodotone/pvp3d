@@ -17,6 +17,7 @@ import {
 import { SKILL_PROJECTILES } from "../game/skills.ts";
 import { preloadProjectiles } from "../render/projectileTextures.ts";
 import { Input } from "./Input.ts";
+import { TouchControls } from "./TouchControls.ts";
 import { DIR_ROW_OFFSET } from "../render/BillboardCharacter.ts";
 
 /**
@@ -59,6 +60,7 @@ export class Game {
   private stateAccum = 0;
   private netBtn!: HTMLButtonElement;
   private netStatus!: HTMLElement;
+  private touchControls!: TouchControls;
 
   constructor(container: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -115,6 +117,7 @@ export class Game {
 
     this.buildSkillBar();
     this.buildNetBar();
+    this.touchControls = new TouchControls(this.input, this.player);
     window.addEventListener("resize", this.onResize);
   }
 
@@ -248,18 +251,28 @@ export class Game {
   /** Pick the best enemy in the aim cone and hand it to the player. */
   private updateSoftTarget(): void {
     const p = this.player;
-    if (!p.alive || !this.input.cursorGroundPoint(this.camera, this.aimPt)) {
+    if (!p.alive) {
       p.softTarget = null;
+      return;
+    }
+    // `aimPt` receives a direction (mouse-relative, or right-stick on touch).
+    if (!this.input.getAimDir(this.camera, p.position, this.aimPt)) {
+      // Not actively aiming (touch, stick released): keep the lock if valid.
+      const t = p.softTarget;
+      if (t) {
+        const dx = t.position.x - p.position.x;
+        const dz = t.position.z - p.position.z;
+        if (!t.alive || dx * dx + dz * dz > SOFTLOCK.range * SOFTLOCK.range) {
+          p.softTarget = null;
+        }
+      }
       return;
     }
     const pp = p.position;
-    let ax = this.aimPt.x - pp.x;
-    let az = this.aimPt.z - pp.z;
+    let ax = this.aimPt.x;
+    let az = this.aimPt.z;
     const al = Math.hypot(ax, az);
-    if (al < 1e-4) {
-      p.softTarget = null;
-      return;
-    }
+    if (al < 1e-4) return; // keep current target
     ax /= al;
     az /= al;
 
@@ -357,6 +370,7 @@ export class Game {
 
     this.input.beginFrame();
     this.updateSkillBar();
+    this.touchControls.update();
 
     // Game-level hotkeys.
     if (this.input.wasPressed("KeyG")) this.arena.toggleGrid();
@@ -378,6 +392,13 @@ export class Game {
       for (const r of this.remotes.values()) r.update(dt, this.camera);
     } else {
       for (const d of this.dummies) d.update(dt, this.player, this.camera);
+    }
+
+    // Keep locally-controlled bodies out of the cover boxes (remotes are
+    // collision-resolved on their own client).
+    this.arena.resolveCollision(this.player);
+    if (!this.online) {
+      for (const d of this.dummies) this.arena.resolveCollision(d);
     }
 
     this.input.endFrame();

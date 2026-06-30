@@ -12,7 +12,7 @@ import {
   type SkillDef,
   type SkillEffect,
 } from "../game/skills.ts";
-import { dirFromAngle, arcCos } from "../core/mathx.ts";
+import { dirFromAngle, arcCos, screenToWorldDir } from "../core/mathx.ts";
 
 type State = "idle" | "run" | "attack" | "roll" | "block" | "hurt" | "dead" | "ability";
 
@@ -424,30 +424,17 @@ export class Player extends Combatant {
   }
 
   private readMoveInput(camera: THREE.Camera, input: Input): THREE.Vector3 {
-    const ix = (input.isDown("KeyD") ? 1 : 0) - (input.isDown("KeyA") ? 1 : 0);
-    const iz = (input.isDown("KeyW") ? 1 : 0) - (input.isDown("KeyS") ? 1 : 0);
-    if (ix === 0 && iz === 0) return _move.set(0, 0, 0);
-
-    camera.getWorldDirection(_fwd);
-    _fwd.y = 0;
-    _fwd.normalize();
-    _right.set(-_fwd.z, 0, _fwd.x);
-
-    return _move
-      .copy(_fwd)
-      .multiplyScalar(iz)
-      .addScaledVector(_right, ix)
-      .normalize();
+    input.getMoveAxis(_axis);
+    if (_axis.lengthSq() < 1e-4) return _move.set(0, 0, 0);
+    screenToWorldDir(camera, _axis.x, _axis.y, _move);
+    if (_move.lengthSq() > 1) _move.normalize(); // keyboard clamps; sticks stay analog
+    return _move;
   }
 
-  /** Aim at the soft-locked target if we have one, else at the raw cursor. */
+  /** Aim at the soft-locked target if we have one, else along the raw aim. */
   private faceCursor(camera: THREE.Camera, input: Input): void {
     if (this.faceTargetIfLocked()) return;
-    if (input.cursorGroundPoint(camera, _aim)) {
-      _aim.sub(this.position);
-      _aim.y = 0;
-      if (_aim.lengthSq() > 1e-4) this.faceInstant(_aim);
-    }
+    if (input.getAimDir(camera, this.position, _aim)) this.faceInstant(_aim);
   }
 
   /** Snap to face the soft-locked enemy (for mid-action tracking). */
@@ -503,7 +490,6 @@ export class Player extends Combatant {
 }
 
 const _move = new THREE.Vector3();
-const _fwd = new THREE.Vector3();
-const _right = new THREE.Vector3();
+const _axis = new THREE.Vector2();
 const _aim = new THREE.Vector3();
 const _v = new THREE.Vector3();

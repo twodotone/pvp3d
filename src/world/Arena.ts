@@ -6,9 +6,18 @@ import { WORLD } from "../config.ts";
  * scatter of cover boxes, plus lighting for the 3D geometry. (Characters are
  * unlit billboards, so these lights only shade the greybox itself.)
  */
+interface ObstacleAABB {
+  x: number;
+  z: number;
+  hx: number;
+  hz: number;
+}
+
 export class Arena {
   readonly group = new THREE.Group();
   private grid: THREE.GridHelper;
+  /** Solid box footprints (XZ) for movement collision. */
+  private obstacles: ObstacleAABB[] = [];
 
   constructor(scene: THREE.Scene) {
     const size = WORLD.arenaSize;
@@ -69,6 +78,7 @@ export class Arena {
       box.castShadow = true;
       box.receiveShadow = true;
       this.group.add(box);
+      this.obstacles.push({ x, z, hx: s / 2, hz: s / 2 });
     }
 
     // --- Lighting -------------------------------------------------------
@@ -90,5 +100,34 @@ export class Arena {
 
   toggleGrid(): void {
     this.grid.visible = !this.grid.visible;
+  }
+
+  /** Push a body's circle out of any cover box it overlaps (call post-move). */
+  resolveCollision(body: { position: THREE.Vector3; radius: number }): void {
+    const p = body.position;
+    const r = body.radius;
+    for (const o of this.obstacles) {
+      const closestX = Math.max(o.x - o.hx, Math.min(p.x, o.x + o.hx));
+      const closestZ = Math.max(o.z - o.hz, Math.min(p.z, o.z + o.hz));
+      const dx = p.x - closestX;
+      const dz = p.z - closestZ;
+      const distSq = dx * dx + dz * dz;
+      if (distSq > 1e-6) {
+        if (distSq < r * r) {
+          const dist = Math.sqrt(distSq);
+          const push = r - dist;
+          p.x += (dx / dist) * push;
+          p.z += (dz / dist) * push;
+        }
+      } else {
+        // Center is inside the box — eject along the shallowest axis.
+        const px = p.x - o.x;
+        const pz = p.z - o.z;
+        const ox = o.hx + r - Math.abs(px);
+        const oz = o.hz + r - Math.abs(pz);
+        if (ox < oz) p.x += px >= 0 ? ox : -ox;
+        else p.z += pz >= 0 ? oz : -oz;
+      }
+    }
   }
 }

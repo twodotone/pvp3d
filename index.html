@@ -112,10 +112,65 @@
       }
       #netbar button:hover { background: #4470ff; }
       #net-status { color: #9aa0ab; min-width: 84px; }
+
+      /* keep the desktop chrome above the touch zones, and tappable */
+      #hud, #netbar { z-index: 1000; }
+
+      /* ---- Touch / mobile ---- */
+      html, body { touch-action: none; overscroll-behavior: none; }
+      body.touch #help, body.touch #skillbar { display: none; }
+
+      #touch { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+      .tc-zone { position: absolute; top: 0; bottom: 0; pointer-events: auto; }
+      .tc-zone.tc-left { left: 0; width: 45%; }
+      .tc-zone.tc-right { right: 0; width: 55%; }
+
+      .tc-stick {
+        position: fixed; display: none; width: 132px; height: 132px;
+        margin: -66px 0 0 -66px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+        border: 2px solid rgba(255, 255, 255, 0.18);
+        pointer-events: none; z-index: 6;
+      }
+      .tc-knob {
+        position: absolute; left: 50%; top: 50%; width: 58px; height: 58px;
+        border-radius: 50%; background: rgba(255, 255, 255, 0.28);
+        transform: translate(-50%, -50%);
+      }
+
+      .tc-buttons, .tc-skills {
+        position: fixed; right: 14px; display: flex; gap: 12px;
+        pointer-events: none; z-index: 8;
+      }
+      .tc-buttons { bottom: 96px; align-items: flex-end; }
+      .tc-skills { bottom: 18px; }
+      .tc-btn {
+        position: relative; pointer-events: auto;
+        width: 64px; height: 64px; border-radius: 50%;
+        background: rgba(20, 24, 34, 0.72); border: 2px solid #556;
+        color: #e7ebf3; font-size: 24px; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        user-select: none; -webkit-user-select: none;
+      }
+      .tc-attack { width: 84px; height: 84px; font-size: 30px; background: rgba(60, 30, 30, 0.8); border-color: #a55; }
+      .tc-skill { width: 56px; height: 56px; font-size: 18px; }
+      .tc-skill span { position: relative; z-index: 1; font-weight: bold; }
+      .tc-skill-cd { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background: rgba(0, 0, 0, 0.6); }
+
+      #rotate { display: none; }
+      @media (orientation: portrait) {
+        body.touch #rotate {
+          display: flex; position: fixed; inset: 0; z-index: 2000;
+          background: #0b0c10; color: #cfd3dc; text-align: center;
+          align-items: center; justify-content: center;
+          font: 18px/1.5 ui-monospace, Menlo, Consolas, monospace; padding: 24px;
+        }
+      }
     </style>
   </head>
   <body>
     <div id="app"></div>
+    <div id="rotate">↻ &nbsp;Rotate your device to landscape</div>
     <div id="hud"></div>
     <div id="skillbar"></div>
     <div id="help">
