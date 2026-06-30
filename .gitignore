@@ -1,0 +1,20 @@
+# dependencies / build output
+node_modules
+dist
+.vite
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large third-party SOURCE asset packs (paid/licensed — do NOT redistribute).
+# The generated, game-ready WebP under public/ IS committed so the app runs.
+# Keep your assets/ locally; the build scripts regenerate public/ from them.
+assets/
+
+# build/deploy artifacts
+deploy/*.zip
+
+# local Claude Code settings (per-user)
+.claude/settings.local.json

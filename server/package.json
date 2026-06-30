@@ -1,0 +1,17 @@
+{
+  "name": "arena-relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dumb WebSocket room relay for Arena Combat PvP (client-authoritative).",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
