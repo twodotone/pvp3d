@@ -24,6 +24,22 @@ export const NET = {
   tickHz: 20,
 };
 
+/**
+ * Soft-lock aiming. The aim direction (mouse-relative, or right-stick on mobile)
+ * selects the best enemy inside a frontal cone; attacks then snap toward it.
+ * A *soft* lock — sweeping the aim re-picks; nothing in the cone = free aim.
+ */
+export const SOFTLOCK = {
+  /** Full cone width (deg) around the aim direction that can acquire a target. */
+  coneDeg: 75,
+  /** Max distance an enemy can be soft-locked. */
+  range: 15,
+  /** How much distance matters vs angle when scoring candidates (higher = nearer wins). */
+  distWeight: 0.06,
+  /** Score bonus (radians-equiv) for the currently-locked target, to avoid flicker. */
+  stickiness: 0.3,
+};
+
 /** PvP spawn points by player slot (diagonal-opposite first, so 1v1 faces off). */
 export const SPAWNS: [number, number][] = [
   [-10, -10],

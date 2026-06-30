@@ -45,6 +45,9 @@ export class Player extends Combatant {
   private abilityDidEffect = false;
   private dashDir = new THREE.Vector3();
 
+  /** Soft-locked enemy (set by Game from the aim direction); aiming snaps to it. */
+  softTarget: Combatant | null = null;
+
   constructor() {
     super();
     this.maxHealth = COMBAT.player.maxHealth;
@@ -145,6 +148,7 @@ export class Player extends Combatant {
       this.enter("run");
       this.char.play("run");
     } else {
+      this.faceTargetIfLocked(); // at rest, turn to face the locked enemy
       this.enter("idle");
       this.char.play("idle");
     }
@@ -162,6 +166,7 @@ export class Player extends Combatant {
   }
 
   private updateAttack(dt: number, camera: THREE.Camera, input: Input): void {
+    this.faceTargetIfLocked(); // keep the swing tracking the locked enemy
     // Cancel into a roll for responsiveness.
     if (input.wasPressed("Space") && this.rollCooldown <= 0) {
       this.startRoll(this.readMoveInput(camera, input));
@@ -273,6 +278,7 @@ export class Player extends Combatant {
       return;
     }
     const eff = skill.effect;
+    if (eff.kind !== "dash") this.faceTargetIfLocked(); // track for aimed skills
 
     if (eff.kind === "dash") {
       this.position.addScaledVector(this.dashDir, eff.speed * dt);
@@ -434,12 +440,25 @@ export class Player extends Combatant {
       .normalize();
   }
 
+  /** Aim at the soft-locked target if we have one, else at the raw cursor. */
   private faceCursor(camera: THREE.Camera, input: Input): void {
+    if (this.faceTargetIfLocked()) return;
     if (input.cursorGroundPoint(camera, _aim)) {
       _aim.sub(this.position);
       _aim.y = 0;
       if (_aim.lengthSq() > 1e-4) this.faceInstant(_aim);
     }
+  }
+
+  /** Snap to face the soft-locked enemy (for mid-action tracking). */
+  private faceTargetIfLocked(): boolean {
+    const t = this.softTarget;
+    if (!t || !t.alive) return false;
+    _aim.copy(t.position).sub(this.position);
+    _aim.y = 0;
+    if (_aim.lengthSq() <= 1e-4) return false;
+    this.faceInstant(_aim);
+    return true;
   }
 
   private faceTowards(dir: THREE.Vector3, dt: number): void {

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CAMERA, WORLD, NET, SPAWNS } from "../config.ts";
+import { CAMERA, WORLD, NET, SPAWNS, SOFTLOCK } from "../config.ts";
 import { Arena } from "../world/Arena.ts";
 import { Player } from "../entities/Player.ts";
 import { Dummy } from "../entities/Dummy.ts";
@@ -39,6 +39,9 @@ export class Game {
   private camTarget = new THREE.Vector3();
   private hud = document.getElementById("hud")!;
   private fpsSmoothed = 60;
+
+  private reticle: THREE.Mesh;
+  private aimPt = new THREE.Vector3();
 
   private skillBarEl = document.getElementById("skillbar")!;
   private skillSlots: {
@@ -90,6 +93,23 @@ export class Game {
 
     this.combatants = [this.player, ...this.dummies];
     this.projectiles = new ProjectileSystem(this.scene);
+
+    // Soft-lock target reticle (a ground ring under the locked enemy).
+    const ringGeo = new THREE.RingGeometry(0.5, 0.62, 28);
+    ringGeo.rotateX(-Math.PI / 2);
+    this.reticle = new THREE.Mesh(
+      ringGeo,
+      new THREE.MeshBasicMaterial({
+        color: 0xff5a44,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    );
+    this.reticle.visible = false;
+    this.reticle.renderOrder = 2;
+    this.scene.add(this.reticle);
 
     this.input = new Input(this.renderer.domElement);
 
@@ -223,6 +243,59 @@ export class Game {
     });
   }
 
+  // --- Soft-lock aiming -------------------------------------------------
+
+  /** Pick the best enemy in the aim cone and hand it to the player. */
+  private updateSoftTarget(): void {
+    const p = this.player;
+    if (!p.alive || !this.input.cursorGroundPoint(this.camera, this.aimPt)) {
+      p.softTarget = null;
+      return;
+    }
+    const pp = p.position;
+    let ax = this.aimPt.x - pp.x;
+    let az = this.aimPt.z - pp.z;
+    const al = Math.hypot(ax, az);
+    if (al < 1e-4) {
+      p.softTarget = null;
+      return;
+    }
+    ax /= al;
+    az /= al;
+
+    const coneHalf = THREE.MathUtils.degToRad(SOFTLOCK.coneDeg / 2);
+    let best: Combatant | null = null;
+    let bestScore = Infinity;
+    for (const c of this.combatants) {
+      if (c === p || !c.alive) continue;
+      const tx = c.position.x - pp.x;
+      const tz = c.position.z - pp.z;
+      const td = Math.hypot(tx, tz);
+      if (td < 1e-4 || td > SOFTLOCK.range) continue;
+      const ang = Math.acos(Math.min(1, Math.max(-1, (ax * tx + az * tz) / td)));
+      if (ang > coneHalf) continue;
+      let score = ang + td * SOFTLOCK.distWeight;
+      if (c === p.softTarget) score -= SOFTLOCK.stickiness; // keep current
+      if (score < bestScore) {
+        bestScore = score;
+        best = c;
+      }
+    }
+    p.softTarget = best;
+  }
+
+  private updateReticle(): void {
+    const t = this.player.softTarget;
+    if (t && t.alive) {
+      this.reticle.visible = true;
+      this.reticle.position.set(t.position.x, 0.06, t.position.z);
+      const s = 1 + 0.08 * Math.sin(performance.now() * 0.008);
+      this.reticle.scale.set(s, s, s);
+    } else {
+      this.reticle.visible = false;
+    }
+  }
+
   // --- Skill bar --------------------------------------------------------
 
   private buildSkillBar(): void {
@@ -299,6 +372,7 @@ export class Game {
     if (this.input.wasPressed("Comma")) PROJECTILE_ANGLE_OFFSET.value -= Math.PI / 8;
     if (this.input.wasPressed("Period")) PROJECTILE_ANGLE_OFFSET.value += Math.PI / 8;
 
+    this.updateSoftTarget();
     this.player.update(dt, this.camera, this.input);
     if (this.online) {
       for (const r of this.remotes.values()) r.update(dt, this.camera);
@@ -343,6 +417,7 @@ export class Game {
     this.projectiles.update(dt, this.camera, this.combatants, WORLD.arenaSize / 2);
 
     for (const c of this.combatants) c.refreshHealthBar(this.camera);
+    this.updateReticle();
 
     this.renderer.render(this.scene, this.camera);
     this.updateHud(dt);
