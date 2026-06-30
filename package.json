@@ -8,8 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "sheets": "node scripts/build-sheets.mjs",
-    "tiles": "node scripts/build-tiles.mjs"
+    "sheets": "node scripts/build-sheets.mjs"
   },
   "devDependencies": {
     "pngjs": "^7.0.0",

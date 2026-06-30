@@ -7,7 +7,6 @@ import {
   projectileStart,
 } from "../game/projectiles.ts";
 import { frames as projFrames } from "../render/projectileTextures.ts";
-import { sortOrder, SORT_LAYER } from "../render/depthSort.ts";
 
 /**
  * A travelling projectile drawn as a camera-facing Sprite, rotated in screen
@@ -165,12 +164,5 @@ export class ProjectileSystem {
 
   get count(): number {
     return this.active.length;
-  }
-
-  /** Order projectiles into the unified 2.5D painter's sort (tile-map mode). */
-  applyDepthSort(camera: THREE.Camera): void {
-    for (const p of this.active) {
-      p.sprite.renderOrder = sortOrder(p.position, camera, SORT_LAYER.mid);
-    }
   }
 }

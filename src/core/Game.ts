@@ -18,13 +18,10 @@ import { SKILL_PROJECTILES } from "../game/skills.ts";
 import { preloadProjectiles } from "../render/projectileTextures.ts";
 import { Input } from "./Input.ts";
 import { DIR_ROW_OFFSET } from "../render/BillboardCharacter.ts";
-import { TileWorld } from "../world/TileWorld.ts";
-import { sortOrder, SORT_LAYER } from "../render/depthSort.ts";
-import { MapEditor } from "../game/MapEditor.ts";
 
 /**
  * Owns the renderer, scene, isometric camera and the main loop. Wires the
- * arena, the player and input together and drives the per-frame update.
+ * greybox arena, the player, the dummies (offline sandbox) and online PvP.
  */
 export class Game {
   private renderer: THREE.WebGLRenderer;
@@ -38,11 +35,6 @@ export class Game {
   private combatants: Combatant[] = [];
   private projectiles: ProjectileSystem;
   private input: Input;
-
-  // Custom Isometric Map & Editor
-  private tileWorld: TileWorld;
-  private mapEditor: MapEditor;
-  private customMapActive = false;
 
   private camTarget = new THREE.Vector3();
   private hud = document.getElementById("hud")!;
@@ -100,87 +92,6 @@ export class Game {
     this.projectiles = new ProjectileSystem(this.scene);
 
     this.input = new Input(this.renderer.domElement);
-    this.scene.userData.domElement = this.renderer.domElement;
-
-    // Initialize custom map and editor
-    this.tileWorld = new TileWorld(this.scene, this.camera);
-    this.mapEditor = new MapEditor(this.scene, this.camera, this.input, this.tileWorld);
-
-    this.mapEditor.onModeToggle((playMode) => {
-      this.customMapActive = playMode;
-      this.setWorldSortMode(playMode);
-      if (playMode) {
-        this.arena.group.visible = false;
-
-        const data = this.mapEditor.getMapData();
-        void this.tileWorld.load(data).then(() => {
-          if (data.playerSpawn) {
-            this.player.spawn(new THREE.Vector3(data.playerSpawn.x, 0, data.playerSpawn.z));
-            this.camTarget.copy(this.player.object.position);
-            this.updateCameraPosition();
-          } else {
-            this.player.spawn(new THREE.Vector3(0, 0, 7));
-          }
-
-          // Clear default dummies and respawn
-          for (const d of this.dummies) {
-            this.scene.remove(d.object);
-          }
-          this.dummies = [];
-
-          if (data.enemySpawns && data.enemySpawns.length > 0) {
-            for (const s of data.enemySpawns) {
-              const d = new Dummy(new THREE.Vector3(s.x, 0, s.z), s.type);
-              this.dummies.push(d);
-              this.scene.add(d.object);
-            }
-          } else {
-            const defaultSpawns: [THREE.Vector3, string][] = [
-              [new THREE.Vector3(-5, 0, -3), "2Archer"],
-              [new THREE.Vector3(5, 0, -3), "3Wizard"],
-              [new THREE.Vector3(0, 0, -8), "7DeathKnight"],
-            ];
-            for (const [p, id] of defaultSpawns) {
-              const d = new Dummy(p, id);
-              this.dummies.push(d);
-              this.scene.add(d.object);
-            }
-          }
-
-          void Promise.all(this.dummies.map((d) => d.load())).then(() => {
-            this.combatants = [this.player, ...this.dummies];
-            this.setWorldSortMode(this.customMapActive);
-          });
-        });
-      } else {
-        this.arena.group.visible = true;
-        this.tileWorld.clearVisuals();
-
-        this.player.spawn(new THREE.Vector3(0, 0, 7));
-        this.camTarget.copy(this.player.object.position);
-        this.updateCameraPosition();
-
-        for (const d of this.dummies) {
-          this.scene.remove(d.object);
-        }
-        this.dummies = [];
-
-        const defaultSpawns: [THREE.Vector3, string][] = [
-          [new THREE.Vector3(-5, 0, -3), "2Archer"],
-          [new THREE.Vector3(5, 0, -3), "3Wizard"],
-          [new THREE.Vector3(0, 0, -8), "7DeathKnight"],
-        ];
-        for (const [p, id] of defaultSpawns) {
-          const d = new Dummy(p, id);
-          this.dummies.push(d);
-          this.scene.add(d.object);
-        }
-
-        void Promise.all(this.dummies.map((d) => d.load())).then(() => {
-          this.combatants = [this.player, ...this.dummies];
-        });
-      }
-    });
 
     this.buildSkillBar();
     this.buildNetBar();
@@ -270,7 +181,6 @@ export class Game {
     r = new RemotePlayer(id, (info) =>
       this.net?.sendHit(id, info.damage, info.knockback, info.fromDir.x, info.fromDir.z),
     );
-    r.char.setSortMode(this.customMapActive);
     r.position.set(0, 0, -7);
     this.remotes.set(id, r);
     this.scene.add(r.object);
@@ -308,6 +218,8 @@ export class Game {
     });
   }
 
+  // --- Skill bar --------------------------------------------------------
+
   private buildSkillBar(): void {
     for (let i = 0; i < 4; i++) {
       const el = document.createElement("div");
@@ -327,11 +239,6 @@ export class Game {
   }
 
   private updateSkillBar(): void {
-    if (this.mapEditor.active) {
-      this.skillBarEl.style.display = "none";
-      return;
-    }
-    this.skillBarEl.style.display = "flex";
     const bar = this.player.skillBar;
     for (let i = 0; i < this.skillSlots.length; i++) {
       const s = bar[i];
@@ -345,6 +252,8 @@ export class Game {
       slot.el.style.opacity = s.cd > 0 ? "0.65" : "1";
     }
   }
+
+  // --- Loop -------------------------------------------------------------
 
   async start(): Promise<void> {
     const projTypes = [
@@ -371,29 +280,6 @@ export class Game {
     this.input.beginFrame();
     this.updateSkillBar();
 
-    // If editor is active, suspend game physics and handle camera panning
-    if (this.mapEditor.active) {
-      const panSpeed = 15 * dt;
-      const panMove = new THREE.Vector3();
-      if (this.input.isDown("KeyW") || this.input.isDown("ArrowUp")) panMove.z -= 1;
-      if (this.input.isDown("KeyS") || this.input.isDown("ArrowDown")) panMove.z += 1;
-      if (this.input.isDown("KeyA") || this.input.isDown("ArrowLeft")) panMove.x -= 1;
-      if (this.input.isDown("KeyD") || this.input.isDown("ArrowRight")) panMove.x += 1;
-      
-      if (panMove.lengthSq() > 1e-4) {
-        panMove.normalize().multiplyScalar(panSpeed);
-        const fwd = new THREE.Vector3(-1, 0, -1).normalize();
-        const right = new THREE.Vector3(-1, 0, 1).normalize();
-        this.camTarget.addScaledVector(fwd, -panMove.z);
-        this.camTarget.addScaledVector(right, panMove.x);
-        this.updateCameraPosition();
-      }
-
-      this.input.endFrame();
-      this.renderer.render(this.scene, this.camera);
-      return;
-    }
-
     // Game-level hotkeys.
     if (this.input.wasPressed("KeyG")) this.arena.toggleGrid();
     if (this.input.wasPressed("BracketLeft")) DIR_ROW_OFFSET.value--;
@@ -413,19 +299,6 @@ export class Game {
       for (const r of this.remotes.values()) r.update(dt, this.camera);
     } else {
       for (const d of this.dummies) d.update(dt, this.player, this.camera);
-    }
-
-    // Custom map interactions (V to interact — E is the Dash skill)
-    if (this.customMapActive && this.input.wasPressed("KeyV")) {
-      this.tileWorld.interactNear(this.player.position);
-    }
-
-    // Resolve wall/object collisions on the custom map
-    if (this.customMapActive) {
-      this.tileWorld.resolveCollisions(this.player);
-      for (const d of this.dummies) {
-        this.tileWorld.resolveCollisions(d);
-      }
     }
 
     this.input.endFrame();
@@ -464,27 +337,11 @@ export class Game {
 
     this.projectiles.update(dt, this.camera, this.combatants, WORLD.arenaSize / 2);
 
-    // Unified 2.5D painter's sort: tiles + actors + projectiles share one
-    // depth order keyed on each ground anchor (health bars stay on top).
-    if (this.customMapActive) {
-      this.tileWorld.applyDepthSort(this.camera);
-      for (const c of this.combatants) {
-        c.char.setRenderOrder(sortOrder(c.position, this.camera, SORT_LAYER.mid));
-      }
-      this.projectiles.applyDepthSort(this.camera);
-    }
-
     for (const c of this.combatants) c.refreshHealthBar(this.camera);
 
     this.renderer.render(this.scene, this.camera);
     this.updateHud(dt);
   };
-
-  /** Switch all fighters between z-buffer (arena) and painter's sort (tiles). */
-  private setWorldSortMode(unified: boolean): void {
-    this.player.char.setSortMode(unified);
-    for (const d of this.dummies) d.char.setSortMode(unified);
-  }
 
   private updateCameraPosition(): void {
     const o = CAMERA.offset;
@@ -519,7 +376,6 @@ export class Game {
     const fps = dt > 0 ? 1 / dt : 60;
     this.fpsSmoothed += (fps - this.fpsSmoothed) * 0.1;
     const p = this.player;
-    const aliveDummies = this.dummies.filter((d) => d.alive).length;
     const charName = ROSTER.find((c) => c.id === p.characterId)?.name ?? "?";
     this.hud.textContent =
       `fps   ${this.fpsSmoothed.toFixed(0)}\n` +
@@ -527,7 +383,7 @@ export class Game {
       `hp    ${Math.ceil(p.health)}/${p.maxHealth}\n` +
       `state ${p.debugState}\n` +
       `anim  ${p.char.currentAnim}\n` +
-      `enemies ${aliveDummies}/${this.dummies.length}\n` +
+      `${this.online ? `online (${this.remotes.size + 1})` : `enemies ${this.dummies.filter((d) => d.alive).length}/${this.dummies.length}`}\n` +
       `shots ${this.projectiles.count}\n` +
       `dirΔ ${DIR_ROW_OFFSET.value}  projΔ ${PROJECTILE_ANGLE_OFFSET.value.toFixed(2)}`;
   }

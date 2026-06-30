@@ -69,25 +69,6 @@ export const PLAYER = {
 };
 
 /**
- * Isometric tile geometry. Tiles are 256px iso sprites drawn with the ground
- * diamond (~128px wide, 2:1) centred horizontally and its ground point at
- * ~78% down the cell — the SAME for every tile (floors, walls, trees), so the
- * anchor is one global constant. Rendered as camera-facing billboards.
- */
-export const TILES = {
-  /** World size of a 256px tile billboard (matches character pixel density). */
-  size: 5.2,
-  /** Floor diamond width as a fraction of the 256px cell (for grid spacing). */
-  diamondFrac: 0.5,
-  /** Pixel-Y (fraction from top) of the cell's ground point. */
-  anchorFrac: 0.78,
-  /** World units between grid cells — derived so the 2:1 diamonds tessellate. */
-  get spacing(): number {
-    return (TILES.size * TILES.diamondFrac) / Math.SQRT2;
-  },
-};
-
-/**
  * Sprite sheet layout — uniform across every animation in this pack:
  * 8 rows (facing directions) x 15 columns (animation frames) of 128px cells.
  */
