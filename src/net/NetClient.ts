@@ -8,7 +8,7 @@ import type {
 export type NetStatus = "connecting" | "open" | "closed" | "full" | "error";
 
 export interface NetHandlers {
-  onAssign?: (selfId: string, peers: string[]) => void;
+  onAssign?: (selfId: string, slot: number, peers: string[]) => void;
   onJoin?: (id: string) => void;
   onLeave?: (id: string) => void;
   onState?: (m: StateMsg) => void;
@@ -50,7 +50,7 @@ export class NetClient {
       switch (m.t) {
         case "assign":
           this.selfId = m.id;
-          this.handlers.onAssign?.(m.id, m.peers);
+          this.handlers.onAssign?.(m.id, m.slot, m.peers);
           break;
         case "join": this.handlers.onJoin?.(m.id); break;
         case "leave": this.handlers.onLeave?.(m.id); break;

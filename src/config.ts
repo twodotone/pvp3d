@@ -24,6 +24,14 @@ export const NET = {
   tickHz: 20,
 };
 
+/** PvP spawn points by player slot (diagonal-opposite first, so 1v1 faces off). */
+export const SPAWNS: [number, number][] = [
+  [-10, -10],
+  [10, 10],
+  [10, -10],
+  [-10, 10],
+];
+
 export const RENDER = {
   /**
    * Draw a fake round ground shadow under each character. Turn ON when the

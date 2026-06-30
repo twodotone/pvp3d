@@ -12,7 +12,7 @@ import { WebSocketServer } from "ws";
 import { createServer } from "node:http";
 
 const PORT = process.env.PORT || 8080;
-const ROOM_CAP = 2; // 1v1
+const ROOM_CAP = Number(process.env.ROOM_CAP) || 4; // players per room (FFA)
 
 /** roomCode -> Map<id, ws> */
 const rooms = new Map();
@@ -46,12 +46,18 @@ wss.on("connection", (ws, req) => {
     return;
   }
 
+  // Assign the lowest free spawn slot in the room (so spawns don't collide).
+  const usedSlots = new Set([...members.values()].map((w) => w.slot));
+  let slot = 0;
+  while (usedSlots.has(slot)) slot++;
+
   ws.id = id;
+  ws.slot = slot;
   ws.room = room;
   members.set(id, ws);
 
-  // Tell the newcomer its id + who's already here; tell the others it joined.
-  send(ws, { t: "assign", id, peers: [...members.keys()].filter((p) => p !== id) });
+  // Tell the newcomer its id + slot + who's already here; tell the others it joined.
+  send(ws, { t: "assign", id, slot, peers: [...members.keys()].filter((p) => p !== id) });
   for (const [pid, pws] of members) {
     if (pid !== id) send(pws, { t: "join", id });
   }

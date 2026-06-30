@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CAMERA, WORLD, NET } from "../config.ts";
+import { CAMERA, WORLD, NET, SPAWNS } from "../config.ts";
 import { Arena } from "../world/Arena.ts";
 import { Player } from "../entities/Player.ts";
 import { Dummy } from "../entities/Dummy.ts";
@@ -130,9 +130,14 @@ export class Game {
     for (const d of this.dummies) d.object.visible = false;
     this.netStatus.textContent = "connecting…";
     this.net = new NetClient({
-      onAssign: (_self, peers) => {
+      onAssign: (_self, slot, peers) => {
+        // Spawn at our assigned slot so players don't pile up.
+        const [sx, sz] = SPAWNS[slot % SPAWNS.length];
+        this.player.spawn(new THREE.Vector3(sx, 0, sz));
+        this.camTarget.copy(this.player.object.position);
+        this.updateCameraPosition();
         peers.forEach((p) => this.ensureRemote(p));
-        this.netStatus.textContent = peers.length ? "opponent here" : "waiting…";
+        this.netStatus.textContent = peers.length ? "opponents here" : "waiting…";
       },
       onJoin: (id) => {
         this.ensureRemote(id);
@@ -155,7 +160,7 @@ export class Game {
       onProjectile: (m) => this.spawnGhostProjectile(m),
       onStatus: (s) => {
         if (s !== "open") {
-          this.netStatus.textContent = s === "full" ? "room full (1v1)" : s;
+          this.netStatus.textContent = s === "full" ? "room full" : s;
         }
       },
     });

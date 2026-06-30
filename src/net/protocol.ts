@@ -48,7 +48,7 @@ export interface ProjectileMsg {
 }
 
 // Server → client housekeeping.
-export interface AssignMsg { t: "assign"; id: string; peers: string[]; }
+export interface AssignMsg { t: "assign"; id: string; slot: number; peers: string[]; }
 export interface JoinMsg { t: "join"; id: string; }
 export interface LeaveMsg { t: "leave"; id: string; }
 export interface FullMsg { t: "full"; }
