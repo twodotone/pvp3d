@@ -122,6 +122,7 @@ export class ProjectileSystem {
     camera: THREE.Camera,
     combatants: readonly Combatant[],
     bound: number,
+    blocked?: (x: number, y: number, z: number) => boolean,
   ): void {
     for (const p of this.active) {
       if (!p.alive) continue;
@@ -129,6 +130,12 @@ export class ProjectileSystem {
 
       const pos = p.position;
       if (p.expired || Math.abs(pos.x) > bound || Math.abs(pos.z) > bound) {
+        p.alive = false;
+        continue;
+      }
+
+      // Cover blocks shots (real and mirrored ghosts both stop visually).
+      if (blocked && blocked(pos.x, pos.y, pos.z)) {
         p.alive = false;
         continue;
       }

@@ -61,6 +61,8 @@ export const RENDER = {
 export const CAMERA = {
   /** Orthographic "zoom": world units visible vertically. Smaller = closer. */
   viewHeight: 22,
+  /** Closer zoom on phones/tablets — smaller screen wants to be near the action. */
+  viewHeightMobile: 12,
   /** Direction the camera sits relative to its target (classic iso-ish). */
   offset: { x: 22, y: 18, z: 22 },
   near: 0.1,

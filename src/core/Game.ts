@@ -18,6 +18,7 @@ import { SKILL_PROJECTILES } from "../game/skills.ts";
 import { preloadProjectiles } from "../render/projectileTextures.ts";
 import { Input } from "./Input.ts";
 import { TouchControls } from "./TouchControls.ts";
+import { dirFromAngle } from "./mathx.ts";
 import { DIR_ROW_OFFSET } from "../render/BillboardCharacter.ts";
 
 /**
@@ -43,6 +44,9 @@ export class Game {
 
   private reticle: THREE.Mesh;
   private aimPt = new THREE.Vector3();
+  private viewHeight = window.matchMedia("(pointer: coarse)").matches
+    ? CAMERA.viewHeightMobile
+    : CAMERA.viewHeight;
 
   private skillBarEl = document.getElementById("skillbar")!;
   private skillSlots: {
@@ -141,7 +145,14 @@ export class Game {
       if (this.online) this.leaveOnline();
       else this.goOnline(input.value.trim() || "arena");
     };
-    bar.append(input, btn, status);
+    const fs = document.createElement("button");
+    fs.textContent = "⛶";
+    fs.title = "Fullscreen";
+    fs.onclick = () => {
+      if (document.fullscreenElement) void document.exitFullscreen?.();
+      else void document.documentElement.requestFullscreen?.().catch(() => {});
+    };
+    bar.append(input, btn, status, fs);
     document.body.appendChild(bar);
     this.netBtn = btn;
     this.netStatus = status;
@@ -255,9 +266,11 @@ export class Game {
       p.softTarget = null;
       return;
     }
-    // `aimPt` receives a direction (mouse-relative, or right-stick on touch).
-    if (!this.input.getAimDir(this.camera, p.position, this.aimPt)) {
-      // Not actively aiming (touch, stick released): keep the lock if valid.
+    // Aim direction. On touch it's the way you're facing (the left stick drives
+    // facing) — an auto-lock "vision cone". On desktop it's the mouse.
+    if (this.input.touch) {
+      dirFromAngle(p.char.facing, this.aimPt);
+    } else if (!this.input.getAimDir(this.camera, p.position, this.aimPt)) {
       const t = p.softTarget;
       if (t) {
         const dx = t.position.x - p.position.x;
@@ -435,7 +448,13 @@ export class Game {
     this.camTarget.lerp(this.player.object.position, 1 - Math.pow(0.001, dt));
     this.updateCameraPosition();
 
-    this.projectiles.update(dt, this.camera, this.combatants, WORLD.arenaSize / 2);
+    this.projectiles.update(
+      dt,
+      this.camera,
+      this.combatants,
+      WORLD.arenaSize / 2,
+      (x, y, z) => this.arena.blocksProjectile(x, y, z),
+    );
 
     for (const c of this.combatants) c.refreshHealthBar(this.camera);
     this.updateReticle();
@@ -456,7 +475,7 @@ export class Game {
 
   private applyCameraFrustum(): void {
     const aspect = window.innerWidth / window.innerHeight;
-    const h = CAMERA.viewHeight;
+    const h = this.viewHeight;
     const w = h * aspect;
     const c = this.camera;
     c.left = -w / 2;

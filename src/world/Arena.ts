@@ -11,6 +11,7 @@ interface ObstacleAABB {
   z: number;
   hx: number;
   hz: number;
+  top: number; // box height (y of its top face)
 }
 
 export class Arena {
@@ -78,7 +79,7 @@ export class Arena {
       box.castShadow = true;
       box.receiveShadow = true;
       this.group.add(box);
-      this.obstacles.push({ x, z, hx: s / 2, hz: s / 2 });
+      this.obstacles.push({ x, z, hx: s / 2, hz: s / 2, top: s });
     }
 
     // --- Lighting -------------------------------------------------------
@@ -100,6 +101,20 @@ export class Arena {
 
   toggleGrid(): void {
     this.grid.visible = !this.grid.visible;
+  }
+
+  /** True if a projectile at (x, y, z) is inside a cover box tall enough to stop it. */
+  blocksProjectile(x: number, y: number, z: number): boolean {
+    for (const o of this.obstacles) {
+      if (
+        y <= o.top &&
+        x >= o.x - o.hx && x <= o.x + o.hx &&
+        z >= o.z - o.hz && z <= o.z + o.hz
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Push a body's circle out of any cover box it overlaps (call post-move). */

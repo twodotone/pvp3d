@@ -1,6 +1,7 @@
 import { Input } from "./Input.ts";
 import { Player } from "../entities/Player.ts";
 import { SKILL_KEYS, SKILL_KEY_LABELS } from "../game/skills.ts";
+import { ROSTER } from "../game/characters.ts";
 
 const STICK_RADIUS = 60; // px the knob travels for full deflection
 
@@ -25,14 +26,12 @@ export class TouchControls {
     const root = document.createElement("div");
     root.id = "touch";
 
+    // Single move stick (left). Aiming is auto-lock via facing (see Game), so
+    // there's no aim stick — the right side is free for the action buttons.
     const leftZone = this.zone("tc-left");
-    const rightZone = this.zone("tc-right");
     const leftStick = this.stick();
-    const rightStick = this.stick();
-    root.append(leftZone, rightZone, leftStick.base, rightStick.base);
-
-    this.bindStick(leftZone, leftStick, false);
-    this.bindStick(rightZone, rightStick, true);
+    root.append(leftZone, leftStick.base);
+    this.bindStick(leftZone, leftStick);
 
     // Buttons.
     const buttons = document.createElement("div");
@@ -48,6 +47,21 @@ export class TouchControls {
     root.append(buttons, skills);
 
     document.body.appendChild(root);
+
+    // Character switcher (mobile — desktop uses number keys).
+    const charBtn = document.createElement("button");
+    charBtn.className = "tc-char";
+    const nameOf = (id: string) => ROSTER.find((c) => c.id === id)?.name ?? "?";
+    charBtn.textContent = nameOf(player.characterId);
+    charBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const i = ROSTER.findIndex((c) => c.id === player.characterId);
+      const next = ROSTER[(i + 1) % ROSTER.length];
+      void player.setCharacter(next.id);
+      charBtn.textContent = next.name;
+    });
+    document.body.appendChild(charBtn);
   }
 
   /** Refresh skill-button cooldown visuals each frame. */
@@ -84,14 +98,10 @@ export class TouchControls {
   private bindStick(
     zone: HTMLElement,
     stick: { base: HTMLDivElement; knob: HTMLDivElement },
-    isAim: boolean,
   ): void {
     let id: number | null = null;
     let ox = 0;
     let oy = 0;
-
-    const set = (x: number, y: number, active: boolean) =>
-      isAim ? this.input.setAimStick(x, y, active) : this.input.setMoveStick(x, y);
 
     zone.addEventListener("pointerdown", (e) => {
       if (id !== null) return;
@@ -103,7 +113,7 @@ export class TouchControls {
       stick.base.style.top = `${oy}px`;
       stick.base.style.display = "block";
       stick.knob.style.transform = "translate(-50%,-50%)";
-      set(0, 0, true);
+      this.input.setMoveStick(0, 0);
       e.preventDefault();
     });
 
@@ -117,7 +127,7 @@ export class TouchControls {
       const knobLen = Math.min(len, STICK_RADIUS);
       stick.knob.style.transform = `translate(calc(-50% + ${dirx * knobLen}px), calc(-50% + ${diry * knobLen}px))`;
       const mag = Math.min(1, len / STICK_RADIUS);
-      set(dirx * mag, -diry * mag, true); // invert screen-y so up = forward
+      this.input.setMoveStick(dirx * mag, -diry * mag); // invert screen-y = forward
       e.preventDefault();
     });
 
@@ -125,7 +135,7 @@ export class TouchControls {
       if (e.pointerId !== id) return;
       id = null;
       stick.base.style.display = "none";
-      set(0, 0, false);
+      this.input.setMoveStick(0, 0);
     };
     zone.addEventListener("pointerup", end);
     zone.addEventListener("pointercancel", end);
