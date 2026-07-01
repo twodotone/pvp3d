@@ -185,6 +185,27 @@
       }
       body.touch .tc-char { display: block; }
 
+      #vignette {
+        position: fixed; inset: 0; pointer-events: none; z-index: 900;
+        opacity: 0; transition: opacity 0.15s linear;
+        box-shadow: inset 0 0 150px 36px rgba(190, 20, 20, 0.9);
+      }
+      #killfeed {
+        position: fixed; top: 46px; left: 50%; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        pointer-events: none; z-index: 1000;
+        font: 13px ui-monospace, Menlo, Consolas, monospace;
+      }
+      .feed-line {
+        background: rgba(10, 12, 18, 0.6); color: #ffd7a0;
+        padding: 3px 10px; border-radius: 6px;
+        animation: feedIn 0.15s ease-out;
+      }
+      @keyframes feedIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: none; }
+      }
+
       #rotate { display: none; }
       @media (orientation: portrait) {
         body.touch #rotate {
@@ -199,11 +220,13 @@
   <body>
     <div id="app"></div>
     <div id="rotate">↻ &nbsp;Rotate your device to landscape</div>
+    <div id="vignette"></div>
+    <div id="killfeed"></div>
     <div id="hud"></div>
     <div id="resourcebar"><div id="resource-fill"></div></div>
     <div id="skillbar"></div>
     <div id="help">
-      <b>WASD</b> move &nbsp; <b>L-Click</b> attack &nbsp; <b>R-Mouse</b> block &nbsp; <b>Space</b> roll &nbsp; <b>Q E R F</b> skills &nbsp; <b>1-9</b> character
+      <b>WASD</b> move &nbsp; <b>L-Click</b> attack &nbsp; <b>R-Mouse</b> block &nbsp; <b>Space</b> roll &nbsp; <b>Q E R F</b> skills &nbsp; <b>1-9</b> character &nbsp; <b>M</b> mute
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

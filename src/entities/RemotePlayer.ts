@@ -3,6 +3,8 @@ import { Combatant, type HitInfo, type HitResult } from "../combat/Combatant.ts"
 import { resolveCharacter, type Action } from "../game/characters.ts";
 import { COMBAT, PLAYER } from "../config.ts";
 import { lerpAngle } from "../core/mathx.ts";
+import { feedback } from "../render/Feedback.ts";
+import { sound } from "../audio/Sound.ts";
 import type { StateMsg } from "../net/protocol.ts";
 
 const INTERP_RATE = 14; // higher = snappier follow, lower = smoother
@@ -45,7 +47,15 @@ export class RemotePlayer extends Combatant {
     this.targetPos.set(m.x, 0, m.z);
     this.targetFacing = m.facing;
     this.health = m.hp;
+    const wasAlive = this.alive;
     this.alive = m.alive;
+    if (wasAlive && !m.alive) {
+      feedback.death(this);
+      sound.death(this);
+    } else if (!wasAlive && m.alive) {
+      feedback.spawn(this);
+      sound.spawn(this);
+    }
 
     if (m.charId && m.charId !== this.charId) {
       void this.setCharacter(m.charId);
@@ -69,6 +79,8 @@ export class RemotePlayer extends Combatant {
    */
   override receiveHit(info: HitInfo): HitResult {
     if (!this.alive) return "ignored";
+    feedback.hit(this, info.damage);
+    sound.hit(this, info.damage);
     this.reportHit(info);
     return "hit";
   }

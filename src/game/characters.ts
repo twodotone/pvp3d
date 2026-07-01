@@ -75,25 +75,34 @@ const RANGED: Partial<Record<Action, ActionDef>> = {
   sit: { sheet: "SittingChair", fps: 8, loop: true },
 };
 
+/** Per-class base-stat overrides (the "feel" — tank vs glass vs mobile). */
+export interface CharStats {
+  health?: number; // absolute maxHealth (default 100)
+  speed?: number; // move-speed multiplier (default 1)
+  resourceMax?: number; // absolute stamina/mana pool (default from archetype)
+  resourceRegen?: number; // per-second regen (default from archetype)
+}
+
 export interface CharacterDef {
   id: string;
   name: string;
   archetype: Archetype;
   /** Which projectile a ranged character fires. */
   projectile?: ProjectileType;
+  stats?: CharStats;
 }
 
-/** The playable / spawnable roster (folder id -> display name + archetype). */
+/** The playable / spawnable roster (folder id -> display name + archetype + feel). */
 export const ROSTER: CharacterDef[] = [
-  { id: "1Knight", name: "Knight", archetype: "melee" },
-  { id: "2Archer", name: "Archer", archetype: "ranged", projectile: "Arrow" },
-  { id: "3Wizard", name: "Wizard", archetype: "ranged", projectile: "IceSpell" },
-  { id: "4Paladin", name: "Paladin", archetype: "melee" },
-  { id: "5CamoArcher", name: "Camo Archer", archetype: "ranged", projectile: "FireArrow" },
-  { id: "6Mage", name: "Mage", archetype: "ranged", projectile: "FireSpell" },
-  { id: "7DeathKnight", name: "Death Knight", archetype: "melee" },
-  { id: "8DarkLord", name: "Dark Lord", archetype: "ranged", projectile: "DeathSpell" },
-  { id: "9Longbow", name: "Longbow", archetype: "ranged", projectile: "Arrow" },
+  { id: "1Knight", name: "Knight", archetype: "melee", stats: { health: 115 } },
+  { id: "2Archer", name: "Archer", archetype: "ranged", projectile: "Arrow", stats: { health: 85, speed: 1.15 } },
+  { id: "3Wizard", name: "Wizard", archetype: "ranged", projectile: "IceSpell", stats: { health: 80, speed: 1.05, resourceMax: 120 } },
+  { id: "4Paladin", name: "Paladin", archetype: "melee", stats: { health: 140, speed: 0.9 } },
+  { id: "5CamoArcher", name: "Camo Archer", archetype: "ranged", projectile: "FireArrow", stats: { health: 78, speed: 1.22 } },
+  { id: "6Mage", name: "Mage", archetype: "ranged", projectile: "FireSpell", stats: { health: 75, resourceMax: 110, resourceRegen: 20 } },
+  { id: "7DeathKnight", name: "Death Knight", archetype: "melee", stats: { health: 135, speed: 0.88 } },
+  { id: "8DarkLord", name: "Dark Lord", archetype: "ranged", projectile: "DeathSpell", stats: { health: 110, speed: 0.92 } },
+  { id: "9Longbow", name: "Longbow", archetype: "ranged", projectile: "Arrow", stats: { health: 95, speed: 0.95, resourceRegen: 20 } },
 ];
 
 export interface ResolvedAnim {
@@ -108,6 +117,7 @@ export interface ResolvedCharacter {
   name: string;
   archetype: Archetype;
   projectile?: ProjectileType;
+  stats: CharStats;
   /** Ground anchor: cell fraction (0..1) where the feet/shadow bottom sits. */
   anchor: number;
   anims: Partial<Record<Action, ResolvedAnim>>;
@@ -144,6 +154,7 @@ export function resolveCharacter(id: string): ResolvedCharacter {
     name: def.name,
     archetype: def.archetype,
     projectile: def.projectile,
+    stats: def.stats ?? {},
     anchor: meta.anchor,
     anims,
   };

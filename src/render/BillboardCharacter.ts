@@ -37,6 +37,7 @@ export class BillboardCharacter {
   private row: number = DIR.rows[0];
   private finished = false;
   private spriteH = PLAYER.spriteHeight;
+  private flashTimer = 0;
 
   /** World-space facing angle in radians (atan2(dirX, dirZ)); 0 = +Z. */
   facing = 0;
@@ -148,6 +149,11 @@ export class BillboardCharacter {
     this.mesh.renderOrder = order;
   }
 
+  /** Briefly tint the sprite red-bright on taking a hit. */
+  flash(): void {
+    this.flashTimer = 0.14;
+  }
+
   /**
    * Choose the direction row from this character's world facing, as seen by the
    * camera (projected to screen space so it holds for any camera orientation).
@@ -173,6 +179,13 @@ export class BillboardCharacter {
   /** Advance the animation clock and refresh the visible frame. */
   update(dt: number, camera: THREE.Camera): void {
     this.updateDirection(camera);
+
+    if (this.flashTimer > 0) {
+      this.flashTimer -= dt;
+      const t = Math.max(0, this.flashTimer / 0.14);
+      this.material.color.setRGB(1 + t * 0.9, 1 - t * 0.35, 1 - t * 0.35);
+      if (this.flashTimer <= 0) this.material.color.setRGB(1, 1, 1);
+    }
 
     const anim = this.loaded;
     if (anim) {

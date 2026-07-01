@@ -7,6 +7,7 @@ import {
   projectileStart,
 } from "../game/projectiles.ts";
 import { frames as projFrames } from "../render/projectileTextures.ts";
+import { sound } from "../audio/Sound.ts";
 
 /**
  * A travelling projectile drawn as a camera-facing Sprite, rotated in screen
@@ -115,6 +116,7 @@ export class ProjectileSystem {
     const p = new Projectile(s);
     this.group.add(p.sprite);
     this.active.push(p);
+    sound.shoot(s.type, s.origin);
   }
 
   update(

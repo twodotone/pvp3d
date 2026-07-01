@@ -16,6 +16,8 @@ import {
 } from "../game/projectiles.ts";
 import { SKILL_PROJECTILES } from "../game/skills.ts";
 import { preloadProjectiles } from "../render/projectileTextures.ts";
+import { feedback } from "../render/Feedback.ts";
+import { sound } from "../audio/Sound.ts";
 import { Input } from "./Input.ts";
 import { TouchControls } from "./TouchControls.ts";
 import { dirFromAngle } from "./mathx.ts";
@@ -41,6 +43,7 @@ export class Game {
   private camTarget = new THREE.Vector3();
   private hud = document.getElementById("hud")!;
   private resourceFill = document.getElementById("resource-fill")!;
+  private vignette = document.getElementById("vignette")!;
   private fpsSmoothed = 60;
 
   private reticle: THREE.Mesh;
@@ -65,6 +68,7 @@ export class Game {
   private stateAccum = 0;
   private netBtn!: HTMLButtonElement;
   private netStatus!: HTMLElement;
+  private muteBtn!: HTMLButtonElement;
   private touchControls!: TouchControls;
 
   constructor(container: HTMLElement) {
@@ -123,6 +127,8 @@ export class Game {
     this.buildSkillBar();
     this.buildNetBar();
     this.touchControls = new TouchControls(this.input, this.player);
+    feedback.init(this.scene, this.player);
+    sound.init(this.player);
     window.addEventListener("resize", this.onResize);
   }
 
@@ -153,10 +159,19 @@ export class Game {
       if (document.fullscreenElement) void document.exitFullscreen?.();
       else void document.documentElement.requestFullscreen?.().catch(() => {});
     };
-    bar.append(input, btn, status, fs);
+    const mute = document.createElement("button");
+    mute.title = "Mute (M)";
+    mute.onclick = () => this.setMuteLabel(sound.toggleMute());
+    bar.append(input, btn, status, fs, mute);
     document.body.appendChild(bar);
     this.netBtn = btn;
     this.netStatus = status;
+    this.muteBtn = mute;
+    this.setMuteLabel(sound.isMuted);
+  }
+
+  private setMuteLabel(muted: boolean): void {
+    this.muteBtn.textContent = muted ? "🔇" : "🔊";
   }
 
   private goOnline(room: string): void {
@@ -399,6 +414,7 @@ export class Game {
     // Tune projectile aim correction (in case art points the other way).
     if (this.input.wasPressed("Comma")) PROJECTILE_ANGLE_OFFSET.value -= Math.PI / 8;
     if (this.input.wasPressed("Period")) PROJECTILE_ANGLE_OFFSET.value += Math.PI / 8;
+    if (this.input.wasPressed("KeyM")) this.setMuteLabel(sound.toggleMute());
 
     this.updateSoftTarget();
     this.player.update(dt, this.camera, this.input);
@@ -459,6 +475,7 @@ export class Game {
 
     for (const c of this.combatants) c.refreshHealthBar(this.camera);
     this.updateReticle();
+    feedback.update(dt);
 
     this.renderer.render(this.scene, this.camera);
     this.updateHud(dt);
@@ -472,6 +489,7 @@ export class Game {
       this.camTarget.z + o.z,
     );
     this.camera.lookAt(this.camTarget);
+    feedback.cameraShake(this.camera);
   }
 
   private applyCameraFrustum(): void {
@@ -501,6 +519,9 @@ export class Game {
     const r = p.resourceInfo;
     this.resourceFill.style.width = `${Math.max(0, Math.min(1, r.frac)) * 100}%`;
     this.resourceFill.style.background = r.color;
+    const hpFrac = p.health / p.maxHealth;
+    this.vignette.style.opacity =
+      p.alive && hpFrac < 0.35 ? String((1 - hpFrac / 0.35) * 0.55) : "0";
     this.hud.textContent =
       `fps   ${this.fpsSmoothed.toFixed(0)}\n` +
       `char  ${charName}  [1-9]\n` +

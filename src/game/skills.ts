@@ -1,4 +1,4 @@
-import type { Action, Archetype } from "./characters.ts";
+import type { Action } from "./characters.ts";
 import type { ProjectileType } from "./projectiles.ts";
 
 /**
@@ -28,7 +28,8 @@ export type SkillEffect =
       radius: number;
       lifetime: number;
     }
-  | { kind: "dash"; speed: number; duration: number; iframes: number };
+  | { kind: "dash"; speed: number; duration: number; iframes: number }
+  | { kind: "heal"; activeFrame: number; amount: number };
 
 export interface SkillDef {
   id: string;
@@ -58,18 +59,52 @@ export const SKILLS = {
     effect: { kind: "melee", activeFrame: 6, damage: 8, range: 2.3, arcDeg: 90, knockback: 17 },
   },
   cast: {
-    id: "cast", name: "Firebolt", action: "cast", cooldown: 5, cost: 30, color: "#ff5e5e",
-    effect: { kind: "projectile", activeFrame: 8, projectile: "FireSpell", damage: 22, speed: 16, knockback: 6, radius: 0.4, lifetime: 2 },
+    // Fires the caster's OWN element (undefined projectile -> character's).
+    id: "cast", name: "Bolt", action: "cast", cooldown: 4, cost: 22, color: "#7bb8ff",
+    effect: { kind: "projectile", activeFrame: 8, damage: 20, speed: 17, knockback: 6, radius: 0.4, lifetime: 2 },
+  },
+  slam: {
+    id: "slam", name: "Slam", action: "special1", cooldown: 6, cost: 35, color: "#ff7043",
+    effect: { kind: "melee", activeFrame: 8, damage: 22, range: 3.2, arcDeg: 360, knockback: 18 },
+  },
+  heal: {
+    id: "heal", name: "Mend", action: "special2", cooldown: 12, cost: 45, color: "#7be07b",
+    effect: { kind: "heal", activeFrame: 8, amount: 35 },
+  },
+  barrage: {
+    id: "barrage", name: "Rapid Shot", action: "quickShot", cooldown: 2.5, cost: 14, color: "#9be1ff",
+    effect: { kind: "projectile", activeFrame: 5, damage: 15, speed: 24, knockback: 3, radius: 0.35, lifetime: 1.6 },
+  },
+  bigShot: {
+    id: "bigShot", name: "Charged Shot", action: "special1", cooldown: 7, cost: 40, color: "#c07bff",
+    effect: { kind: "projectile", activeFrame: 8, damage: 40, speed: 15, knockback: 11, radius: 0.5, lifetime: 2 },
   },
 } satisfies Record<string, SkillDef>;
 
 export type SkillId = keyof typeof SKILLS;
 
-/** Default equipped loadout per archetype (slots map to SKILL_KEYS). */
-export const LOADOUTS: Record<Archetype, SkillId[]> = {
-  melee: ["whirlwind", "dash", "kick", "cast"],
-  ranged: ["powershot", "dash", "kick", "cast"],
+/**
+ * Per-character equipped loadout (4 skills → SKILL_KEYS). This is the main
+ * differentiator: which kit a class brings. Skills that need an archetype's
+ * animation (spin = melee; quickShot = ranged) are only slotted to that type.
+ */
+export const LOADOUTS: Record<string, SkillId[]> = {
+  // Melee (stamina)
+  "1Knight": ["whirlwind", "dash", "kick", "slam"], // balanced bruiser
+  "4Paladin": ["whirlwind", "dash", "heal", "slam"], // sustain tank
+  "7DeathKnight": ["slam", "whirlwind", "kick", "dash"], // heavy aggressor
+  // Archers (mana, physical arrows)
+  "2Archer": ["barrage", "dash", "kick", "bigShot"],
+  "5CamoArcher": ["barrage", "dash", "kick", "bigShot"],
+  "9Longbow": ["powershot", "dash", "kick", "bigShot"], // long-range poke
+  // Casters (mana, elemental — "cast"/"bigShot" fire the class's own element)
+  "3Wizard": ["cast", "dash", "kick", "bigShot"],
+  "6Mage": ["cast", "dash", "bigShot", "kick"],
+  "8DarkLord": ["cast", "dash", "heal", "bigShot"], // dark sustain caster
 };
+
+/** Fallback for any character not explicitly listed. */
+export const DEFAULT_LOADOUT: SkillId[] = ["dash", "kick", "whirlwind", "cast"];
 
 export const SKILL_KEYS = ["KeyQ", "KeyE", "KeyR", "KeyF"];
 export const SKILL_KEY_LABELS = ["Q", "E", "R", "F"];
@@ -77,9 +112,7 @@ export const SKILL_KEY_LABELS = ["Q", "E", "R", "F"];
 /** Projectile types explicitly referenced by skills (for preloading). */
 export const SKILL_PROJECTILES: ProjectileType[] = Object.values(SKILLS).flatMap(
   (s) => {
-    const e = s.effect;
-    return e.kind === "projectile" && "projectile" in e && e.projectile
-      ? [e.projectile]
-      : [];
+    const e = s.effect as SkillEffect;
+    return e.kind === "projectile" && e.projectile ? [e.projectile] : [];
   },
 );

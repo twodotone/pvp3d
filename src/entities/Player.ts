@@ -7,12 +7,15 @@ import type { ProjectileType } from "../game/projectiles.ts";
 import {
   SKILLS,
   LOADOUTS,
+  DEFAULT_LOADOUT,
   SKILL_KEYS,
   SKILL_KEY_LABELS,
   type SkillDef,
   type SkillEffect,
 } from "../game/skills.ts";
 import { dirFromAngle, arcCos, screenToWorldDir } from "../core/mathx.ts";
+import { feedback } from "../render/Feedback.ts";
+import { sound } from "../audio/Sound.ts";
 
 type State = "idle" | "run" | "attack" | "roll" | "block" | "hurt" | "dead" | "ability";
 
@@ -58,6 +61,7 @@ export class Player extends Combatant {
   private resourceColor = "#5ad06a";
   private attackCost = 0;
   private rollCost = 0;
+  private moveSpeed = PLAYER.moveSpeed;
 
   constructor() {
     super();
@@ -94,12 +98,16 @@ export class Player extends Combatant {
     this.characterId = id;
     this.archetype = rc.archetype;
     this.projectileType = rc.projectile;
-    this.skills = LOADOUTS[rc.archetype].map((sid) => SKILLS[sid]);
+    this.skills = (LOADOUTS[id] ?? DEFAULT_LOADOUT).map((sid) => SKILLS[sid]);
 
     const rs = RESOURCE[rc.archetype];
-    this.maxResource = rs.max;
-    this.resource = rs.max;
-    this.resourceRegen = rs.regen;
+    const st = rc.stats;
+    this.maxHealth = st.health ?? COMBAT.player.maxHealth;
+    this.health = this.maxHealth;
+    this.moveSpeed = PLAYER.moveSpeed * (st.speed ?? 1);
+    this.maxResource = st.resourceMax ?? rs.max;
+    this.resource = this.maxResource;
+    this.resourceRegen = st.resourceRegen ?? rs.regen;
     this.resourceRegenDelay = rs.regenDelay;
     this.resourceName = rs.name;
     this.resourceColor = rs.color;
@@ -191,7 +199,7 @@ export class Player extends Combatant {
     }
 
     if (move.lengthSq() > 1e-4) {
-      this.position.addScaledVector(move, PLAYER.moveSpeed * dt);
+      this.position.addScaledVector(move, this.moveSpeed * dt);
       this.faceTowards(move, dt);
       this.enter("run");
       this.char.play("run");
@@ -211,6 +219,7 @@ export class Player extends Combatant {
     this.faceCursor(camera, input);
     this.enter("attack");
     this.char.play(COMBO[0].anim, true);
+    if (this.archetype !== "ranged") sound.swing(this);
   }
 
   private updateAttack(dt: number, camera: THREE.Camera, input: Input): void {
@@ -257,6 +266,7 @@ export class Player extends Combatant {
         this.faceCursor(camera, input);
         this.char.play(COMBO[this.comboStep].anim, true);
         this.stateTime = 0;
+        sound.swing(this);
       } else {
         this.enter("idle");
       }
@@ -318,6 +328,7 @@ export class Player extends Combatant {
       this.faceCursor(camera, input); // aim toward the cursor
     }
     this.char.play(skill.action, true);
+    sound.skill(skill.effect.kind, this);
   }
 
   private updateAbility(dt: number): void {
@@ -337,7 +348,10 @@ export class Player extends Combatant {
 
     if (!this.abilityDidEffect && this.char.currentFrame >= eff.activeFrame) {
       if (eff.kind === "melee") this.postSkillMelee(eff);
-      else this.postSkillProjectile(eff);
+      else if (eff.kind === "projectile") this.postSkillProjectile(eff);
+      else if (eff.kind === "heal") {
+        this.health = Math.min(this.maxHealth, this.health + eff.amount);
+      }
       this.abilityDidEffect = true;
     }
     if (this.char.isFinished) this.enter("idle");
@@ -406,6 +420,7 @@ export class Player extends Combatant {
     this.char.play("roll", true);
     this.rollCooldown = PLAYER.roll.cooldown;
     this.setIFrames(COMBAT.player.rollIFrames);
+    sound.roll(this);
   }
 
   private updateRoll(dt: number): void {
@@ -461,6 +476,8 @@ export class Player extends Combatant {
     this.enter("idle");
     this.char.play("idle", true);
     this.setIFrames(1.0);
+    feedback.spawn(this);
+    sound.spawn(this);
   }
 
   // --- Helpers ----------------------------------------------------------

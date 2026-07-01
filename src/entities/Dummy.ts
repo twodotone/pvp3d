@@ -4,6 +4,8 @@ import { Combatant, type HitInfo } from "../combat/Combatant.ts";
 import { resolveCharacter, type Archetype } from "../game/characters.ts";
 import type { ProjectileType } from "../game/projectiles.ts";
 import { angleFromDir, dirFromAngle, arcCos } from "../core/mathx.ts";
+import { feedback } from "../render/Feedback.ts";
+import { sound } from "../audio/Sound.ts";
 
 type State = "idle" | "attack" | "hurt" | "dead";
 
@@ -100,6 +102,7 @@ export class Dummy extends Combatant {
     this.didHit = false;
     this.enter("attack");
     this.char.play(CFG.attack.anim, true);
+    if (this.archetype !== "ranged") sound.swing(this);
   }
 
   private postMelee(): void {
@@ -153,6 +156,8 @@ export class Dummy extends Combatant {
     this.enter("idle");
     this.char.play("idle", true);
     this.setIFrames(0.5);
+    feedback.spawn(this);
+    sound.spawn(this);
   }
 
   private enter(state: State): void {

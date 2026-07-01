@@ -3,6 +3,8 @@ import { BillboardCharacter } from "../render/BillboardCharacter.ts";
 import { HealthBar } from "../render/HealthBar.ts";
 import { dirFromAngle } from "../core/mathx.ts";
 import { PLAYER } from "../config.ts";
+import { feedback } from "../render/Feedback.ts";
+import { sound } from "../audio/Sound.ts";
 import type { ProjectileType } from "../game/projectiles.ts";
 
 export type HitResult = "ignored" | "blocked" | "hit" | "killed";
@@ -111,6 +113,7 @@ export abstract class Combatant {
       const threat = _w.copy(info.fromDir).negate();
       if (facing.dot(threat) >= this.blockArcCos) {
         this.knockVel.addScaledVector(info.fromDir, info.knockback * 0.25);
+        sound.block(this);
         this.onBlocked(info);
         return "blocked";
       }
@@ -122,9 +125,13 @@ export abstract class Combatant {
     if (this.health <= 0) {
       this.health = 0;
       this.alive = false;
+      feedback.death(this);
+      sound.death(this);
       this.onDeath(info);
       return "killed";
     }
+    feedback.hit(this, info.damage);
+    sound.hit(this, info.damage);
     // Only stagger if not still recovering poise — prevents chain stun-lock.
     if (this.poiseTimer <= 0) {
       this.poiseTimer = this.poiseWindow;
