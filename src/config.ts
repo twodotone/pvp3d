@@ -130,6 +130,10 @@ export const COMBAT = {
     maxHealth: 100,
     /** Invulnerability window granted by a roll (dodge). */
     rollIFrames: 0.45,
+    /** How long a stagger locks you out of control (short — was the full anim). */
+    hurtDuration: 0.3,
+    /** After a stagger, hits still hurt but can't re-stagger you for this long. */
+    poiseWindow: 0.8,
     block: {
       arcDeg: 150, // frontal cone a raised shield covers
       damageMul: 0, // 0 = fully negates frontal damage
@@ -171,5 +175,32 @@ export const COMBAT = {
       cooldown: 2.2, // more breathing room between swings
     },
     respawnDelay: 3,
+  },
+} as const;
+
+/**
+ * Action economy: melee runs on STAMINA, casters/ranged on MANA (same mechanic,
+ * different flavour). Attacks/skills/rolls cost it and it regenerates, so an
+ * archer can't fire forever — this is the main anti-spam lever. Per-skill costs
+ * live on each SkillDef (src/game/skills.ts).
+ */
+export const RESOURCE = {
+  melee: {
+    name: "stamina",
+    color: "#5ad06a",
+    max: 100,
+    regen: 26, // per second
+    regenDelay: 0.3, // pause before regen resumes after spending
+    attackCost: 14, // per combo
+    rollCost: 22,
+  },
+  ranged: {
+    name: "mana",
+    color: "#4aa8ff",
+    max: 100,
+    regen: 16,
+    regenDelay: 0.5,
+    attackCost: 24, // per shot — rations the archer
+    rollCost: 22,
   },
 } as const;

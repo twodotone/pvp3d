@@ -40,6 +40,7 @@ export class Game {
 
   private camTarget = new THREE.Vector3();
   private hud = document.getElementById("hud")!;
+  private resourceFill = document.getElementById("resource-fill")!;
   private fpsSmoothed = 60;
 
   private reticle: THREE.Mesh;
@@ -497,10 +498,14 @@ export class Game {
     this.fpsSmoothed += (fps - this.fpsSmoothed) * 0.1;
     const p = this.player;
     const charName = ROSTER.find((c) => c.id === p.characterId)?.name ?? "?";
+    const r = p.resourceInfo;
+    this.resourceFill.style.width = `${Math.max(0, Math.min(1, r.frac)) * 100}%`;
+    this.resourceFill.style.background = r.color;
     this.hud.textContent =
       `fps   ${this.fpsSmoothed.toFixed(0)}\n` +
       `char  ${charName}  [1-9]\n` +
       `hp    ${Math.ceil(p.health)}/${p.maxHealth}\n` +
+      `${r.name}  ${Math.ceil(p.resource)}/${p.maxResource}\n` +
       `state ${p.debugState}\n` +
       `anim  ${p.char.currentAnim}\n` +
       `${this.online ? `online (${this.remotes.size + 1})` : `enemies ${this.dummies.filter((d) => d.alive).length}/${this.dummies.length}`}\n` +

@@ -38,6 +38,26 @@
       }
       #help b { color: #e7ebf3; }
 
+      #resourcebar {
+        position: fixed;
+        bottom: 118px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 260px;
+        height: 9px;
+        border-radius: 5px;
+        background: rgba(10, 12, 18, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        pointer-events: none;
+      }
+      #resource-fill {
+        height: 100%;
+        width: 100%;
+        background: #5ad06a;
+        transition: width 0.06s linear;
+      }
+
       #skillbar {
         position: fixed;
         bottom: 46px;
@@ -180,6 +200,7 @@
     <div id="app"></div>
     <div id="rotate">↻ &nbsp;Rotate your device to landscape</div>
     <div id="hud"></div>
+    <div id="resourcebar"><div id="resource-fill"></div></div>
     <div id="skillbar"></div>
     <div id="help">
       <b>WASD</b> move &nbsp; <b>L-Click</b> attack &nbsp; <b>R-Mouse</b> block &nbsp; <b>Space</b> roll &nbsp; <b>Q E R F</b> skills &nbsp; <b>1-9</b> character

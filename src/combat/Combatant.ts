@@ -62,6 +62,10 @@ export abstract class Combatant {
   protected iframeTimer = 0;
   protected knockVel = new THREE.Vector3();
 
+  /** Stagger resistance: after a stagger, hits still hurt but don't re-stagger. */
+  protected poiseTimer = 0;
+  protected poiseWindow = 0.5;
+
   /** A swing waiting to be resolved this frame (consumed by the game). */
   protected pendingMelee: MeleeQuery | null = null;
   /** A projectile waiting to be spawned this frame (consumed by the game). */
@@ -121,13 +125,18 @@ export abstract class Combatant {
       this.onDeath(info);
       return "killed";
     }
-    this.onHurt(info);
+    // Only stagger if not still recovering poise — prevents chain stun-lock.
+    if (this.poiseTimer <= 0) {
+      this.poiseTimer = this.poiseWindow;
+      this.onHurt(info);
+    }
     return "hit";
   }
 
   /** Per-frame physics common to all combatants. Call from subclass update(). */
   protected stepPhysics(dt: number): void {
     if (this.iframeTimer > 0) this.iframeTimer -= dt;
+    if (this.poiseTimer > 0) this.poiseTimer -= dt;
     if (this.knockVel.lengthSq() > 1e-5) {
       this.position.addScaledVector(this.knockVel, dt);
       this.knockVel.multiplyScalar(Math.pow(0.0002, dt));

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Input } from "../core/Input.ts";
-import { PLAYER, WORLD, COMBAT } from "../config.ts";
+import { PLAYER, WORLD, COMBAT, RESOURCE } from "../config.ts";
 import { Combatant, type HitInfo } from "../combat/Combatant.ts";
 import { resolveCharacter, type Archetype } from "../game/characters.ts";
 import type { ProjectileType } from "../game/projectiles.ts";
@@ -48,12 +48,40 @@ export class Player extends Combatant {
   /** Soft-locked enemy (set by Game from the aim direction); aiming snaps to it. */
   softTarget: Combatant | null = null;
 
+  // Action economy (stamina for melee, mana for ranged).
+  resource = 100;
+  maxResource = 100;
+  private resourceRegen = 0;
+  private resourceRegenDelay = 0;
+  private regenTimer = 0;
+  private resourceName = "stamina";
+  private resourceColor = "#5ad06a";
+  private attackCost = 0;
+  private rollCost = 0;
+
   constructor() {
     super();
     this.maxHealth = COMBAT.player.maxHealth;
     this.health = this.maxHealth;
     this.radius = PLAYER.radius;
     this.blockArcCos = arcCos(COMBAT.player.block.arcDeg);
+    this.poiseWindow = COMBAT.player.poiseWindow;
+  }
+
+  private spend(cost: number): boolean {
+    if (this.resource < cost) return false;
+    this.resource -= cost;
+    this.regenTimer = this.resourceRegenDelay;
+    return true;
+  }
+
+  /** Resource-bar view model for the HUD. */
+  get resourceInfo(): { frac: number; color: string; name: string } {
+    return {
+      frac: this.maxResource > 0 ? this.resource / this.maxResource : 0,
+      color: this.resourceColor,
+      name: this.resourceName,
+    };
   }
 
   async load(): Promise<void> {
@@ -67,6 +95,17 @@ export class Player extends Combatant {
     this.archetype = rc.archetype;
     this.projectileType = rc.projectile;
     this.skills = LOADOUTS[rc.archetype].map((sid) => SKILLS[sid]);
+
+    const rs = RESOURCE[rc.archetype];
+    this.maxResource = rs.max;
+    this.resource = rs.max;
+    this.resourceRegen = rs.regen;
+    this.resourceRegenDelay = rs.regenDelay;
+    this.resourceName = rs.name;
+    this.resourceColor = rs.color;
+    this.attackCost = rs.attackCost;
+    this.rollCost = rs.rollCost;
+
     await this.char.loadCharacter(rc);
   }
 
@@ -82,6 +121,9 @@ export class Player extends Combatant {
     for (let i = 0; i < this.cooldowns.length; i++) {
       this.cooldowns[i] = Math.max(0, this.cooldowns[i] - dt);
     }
+    // Resource regen (paused briefly after spending).
+    if (this.regenTimer > 0) this.regenTimer -= dt;
+    else this.resource = Math.min(this.maxResource, this.resource + this.resourceRegen * dt);
     this.stepPhysics(dt);
 
     const move = this.readMoveInput(camera, input);
@@ -104,7 +146,9 @@ export class Player extends Combatant {
         this.updateBlock(camera, input);
         break;
       case "hurt":
-        if (this.char.isFinished) this.enter("idle");
+        if (this.stateTime >= COMBAT.player.hurtDuration || this.char.isFinished) {
+          this.enter("idle");
+        }
         break;
       case "dead":
         this.updateDead();
@@ -128,16 +172,20 @@ export class Player extends Combatant {
       return;
     }
     for (let i = 0; i < SKILL_KEYS.length; i++) {
-      if (input.wasPressed(SKILL_KEYS[i]) && this.cooldowns[i] <= 0 && this.skills[i]) {
+      const sk = this.skills[i];
+      if (input.wasPressed(SKILL_KEYS[i]) && this.cooldowns[i] <= 0 && sk && this.resource >= sk.cost) {
+        this.spend(sk.cost);
         this.startAbility(i, move, camera, input);
         return;
       }
     }
-    if (input.primaryDown) {
+    if (input.primaryDown && this.resource >= this.attackCost) {
+      this.spend(this.attackCost);
       this.startCombo(camera, input);
       return;
     }
-    if (input.wasPressed("Space") && this.rollCooldown <= 0) {
+    if (input.wasPressed("Space") && this.rollCooldown <= 0 && this.resource >= this.rollCost) {
+      this.spend(this.rollCost);
       this.startRoll(move);
       return;
     }
@@ -168,7 +216,8 @@ export class Player extends Combatant {
   private updateAttack(dt: number, camera: THREE.Camera, input: Input): void {
     this.faceTargetIfLocked(); // keep the swing tracking the locked enemy
     // Cancel into a roll for responsiveness.
-    if (input.wasPressed("Space") && this.rollCooldown <= 0) {
+    if (input.wasPressed("Space") && this.rollCooldown <= 0 && this.resource >= this.rollCost) {
+      this.spend(this.rollCost);
       this.startRoll(this.readMoveInput(camera, input));
       return;
     }

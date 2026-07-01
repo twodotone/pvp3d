@@ -35,29 +35,30 @@ export interface SkillDef {
   name: string;
   action: Action; // animation to play
   cooldown: number; // seconds
+  cost: number; // stamina/mana spent
   color: string; // skill-bar accent
   effect: SkillEffect;
 }
 
 export const SKILLS = {
   whirlwind: {
-    id: "whirlwind", name: "Whirlwind", action: "spin", cooldown: 5, color: "#ff8a3d",
+    id: "whirlwind", name: "Whirlwind", action: "spin", cooldown: 5, cost: 30, color: "#ff8a3d",
     effect: { kind: "melee", activeFrame: 6, damage: 18, range: 2.9, arcDeg: 360, knockback: 9 },
   },
   powershot: {
-    id: "powershot", name: "Power Shot", action: "quickShot", cooldown: 4, color: "#a06bff",
+    id: "powershot", name: "Power Shot", action: "quickShot", cooldown: 4, cost: 35, color: "#a06bff",
     effect: { kind: "projectile", activeFrame: 6, damage: 28, speed: 26, knockback: 10, radius: 0.4, lifetime: 1.6 },
   },
   dash: {
-    id: "dash", name: "Dash", action: "frontFlip", cooldown: 3, color: "#4cd9ff",
+    id: "dash", name: "Dash", action: "frontFlip", cooldown: 3, cost: 18, color: "#4cd9ff",
     effect: { kind: "dash", speed: 17, duration: 0.4, iframes: 0.35 },
   },
   kick: {
-    id: "kick", name: "Kick", action: "kick", cooldown: 4, color: "#ffd34c",
+    id: "kick", name: "Kick", action: "kick", cooldown: 4, cost: 16, color: "#ffd34c",
     effect: { kind: "melee", activeFrame: 6, damage: 8, range: 2.3, arcDeg: 90, knockback: 17 },
   },
   cast: {
-    id: "cast", name: "Firebolt", action: "cast", cooldown: 5, color: "#ff5e5e",
+    id: "cast", name: "Firebolt", action: "cast", cooldown: 5, cost: 30, color: "#ff5e5e",
     effect: { kind: "projectile", activeFrame: 8, projectile: "FireSpell", damage: 22, speed: 16, knockback: 6, radius: 0.4, lifetime: 2 },
   },
 } satisfies Record<string, SkillDef>;
