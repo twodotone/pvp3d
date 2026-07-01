@@ -149,6 +149,11 @@ export class BillboardCharacter {
     this.mesh.renderOrder = order;
   }
 
+  /** Uniformly scale the whole billboard about its feet (for a big boss sprite). */
+  setScale(mul: number): void {
+    this.object.scale.setScalar(mul);
+  }
+
   /** Briefly tint the sprite red-bright on taking a hit. */
   flash(): void {
     this.flashTimer = 0.14;

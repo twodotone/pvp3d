@@ -848,5 +848,887 @@ export const SHEET_MANIFEST: Record<string, CharMeta> = {
         "frames": 15
       }
     }
+  },
+  "1Brute": {
+    "anchor": 0.9635,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 15
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 15
+      },
+      "Slide": {
+        "frames": 15
+      },
+      "SlideEnd": {
+        "frames": 15
+      },
+      "SlideStart": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 15
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "2DeathLord": {
+    "anchor": 0.9635,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 15
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 15
+      },
+      "Slide": {
+        "frames": 15
+      },
+      "SlideEnd": {
+        "frames": 15
+      },
+      "SlideStart": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 15
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "3DarkKnight": {
+    "anchor": 0.8047,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Kick": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 14
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 15
+      },
+      "Slide": {
+        "frames": 15
+      },
+      "SlideStart": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 14
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "4Berserker": {
+    "anchor": 0.8438,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Kick": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 14
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 14
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "5Archer": {
+    "anchor": 0.8984,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Kick": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 15
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 14
+      },
+      "Slide": {
+        "frames": 15
+      },
+      "SlideEnd": {
+        "frames": 15
+      },
+      "SlideStart": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 15
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "6Warrior": {
+    "anchor": 0.8594,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Kick": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 14
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 14
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "7DarkArcher": {
+    "anchor": 0.9219,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Kick": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 15
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 14
+      },
+      "Slide": {
+        "frames": 15
+      },
+      "SlideEnd": {
+        "frames": 15
+      },
+      "SlideStart": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 15
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "8Necromancer": {
+    "anchor": 0.8672,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Kick": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 14
+      },
+      "QuickSlide": {
+        "frames": 15
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 15
+      },
+      "Slide": {
+        "frames": 15
+      },
+      "SlideEnd": {
+        "frames": 15
+      },
+      "SlideStart": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 15
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 12
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
+  },
+  "9Wizard": {
+    "anchor": 0.8516,
+    "sheets": {
+      "180Turn": {
+        "frames": 15
+      },
+      "Attack1": {
+        "frames": 15
+      },
+      "Attack2": {
+        "frames": 15
+      },
+      "Attack3": {
+        "frames": 15
+      },
+      "AttackRun": {
+        "frames": 15
+      },
+      "BlockMid": {
+        "frames": 15
+      },
+      "BlockStart": {
+        "frames": 15
+      },
+      "CastSpell": {
+        "frames": 15
+      },
+      "CrouchIdle": {
+        "frames": 15
+      },
+      "CrouchRun": {
+        "frames": 15
+      },
+      "Die": {
+        "frames": 15
+      },
+      "FrontFlip": {
+        "frames": 15
+      },
+      "Idle": {
+        "frames": 15
+      },
+      "Idle2": {
+        "frames": 15
+      },
+      "Kick": {
+        "frames": 15
+      },
+      "Pummel": {
+        "frames": 15
+      },
+      "QuickShot": {
+        "frames": 15
+      },
+      "QuickSlide": {
+        "frames": 15
+      },
+      "Rolling": {
+        "frames": 15
+      },
+      "Run": {
+        "frames": 15
+      },
+      "RunBackwards": {
+        "frames": 15
+      },
+      "SittingChair": {
+        "frames": 15
+      },
+      "Slide": {
+        "frames": 15
+      },
+      "SlideEnd": {
+        "frames": 15
+      },
+      "SlideStart": {
+        "frames": 15
+      },
+      "Special1": {
+        "frames": 15
+      },
+      "Special2": {
+        "frames": 15
+      },
+      "StrafeLeft": {
+        "frames": 15
+      },
+      "StrafeRight": {
+        "frames": 15
+      },
+      "TakeDamage": {
+        "frames": 15
+      },
+      "UnSheath": {
+        "frames": 15
+      },
+      "Walk": {
+        "frames": 15
+      }
+    }
   }
 };

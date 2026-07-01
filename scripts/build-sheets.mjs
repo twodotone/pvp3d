@@ -21,25 +21,34 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ASSETS = join(ROOT, "assets");
 const SRC = join(ASSETS, "Character Sheets");
 const OUT = join(ROOT, "public", "characters");
+// A second, same-format art pack for the AI bad guys (served from /enemies/).
+const ENEMY_SRC = join(ASSETS, "Enemies");
+const ENEMY_OUT = join(ROOT, "public", "enemies");
 const MANIFEST = join(ROOT, "src", "game", "sheetManifest.generated.ts");
 
 const PROJ_OUT = join(ROOT, "public", "projectiles");
 const PROJ_MANIFEST = join(ROOT, "src", "game", "projectileManifest.generated.ts");
 
-const CELL = 128;
 const COLS = 15;
 const ROWS = 8;
 const ALPHA = 20; // opacity threshold for "this pixel has content"
+
+// Cell size is derived from each sheet's dimensions (always a 15x8 grid), so a
+// higher-res pack (e.g. the boss at 192px cells) analyses correctly too.
+const cellW = (png) => Math.round(png.width / COLS);
+const cellH = (png) => Math.round(png.height / ROWS);
 
 const isDir = (p) => { try { return statSync(p).isDirectory(); } catch { return false; } };
 
 /** Count populated columns by scanning row 0's band (rows are consistent). */
 function frameCount(png) {
+  const cw = cellW(png);
+  const ch = cellH(png);
   let frames = 0;
   for (let col = 0; col < COLS; col++) {
     let any = false;
-    for (let y = 0; y < CELL && !any; y++) {
-      for (let x = col * CELL; x < col * CELL + CELL; x++) {
+    for (let y = 0; y < ch && !any; y++) {
+      for (let x = col * cw; x < col * cw + cw; x++) {
         if (png.data[(y * png.width + x) * 4 + 3] > ALPHA) { any = true; break; }
       }
     }
@@ -50,15 +59,16 @@ function frameCount(png) {
 
 /** Lowest opaque pixel within a cell, as a 0..1 fraction (1 = cell bottom). */
 function anchorFraction(png) {
+  const ch = cellH(png);
   let maxLocalY = 0;
   for (let y = 0; y < png.height; y++) {
-    const localY = y % CELL;
+    const localY = y % ch;
     if (localY <= maxLocalY) continue;
     for (let x = 0; x < png.width; x++) {
       if (png.data[(y * png.width + x) * 4 + 3] > ALPHA) { maxLocalY = localY; break; }
     }
   }
-  return (maxLocalY + 1) / CELL;
+  return (maxLocalY + 1) / ch;
 }
 
 if (!isDir(SRC)) {
@@ -66,34 +76,46 @@ if (!isDir(SRC)) {
   process.exit(1);
 }
 
-rmSync(OUT, { recursive: true, force: true });
-mkdirSync(OUT, { recursive: true });
+/**
+ * Convert one character pack (each subfolder = a character of PNG sheets) to
+ * WebP under `outDir`, recording per-sheet frame counts + a ground anchor into
+ * the shared manifest. Ids across packs are unique, so they coexist in one map.
+ */
+async function processPack(srcDir, outDir, manifest) {
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+
+  const ids = readdirSync(srcDir).filter((d) => isDir(join(srcDir, d))).sort();
+  for (const id of ids) {
+    const charSrc = join(srcDir, id);
+    const charOut = join(outDir, id);
+    mkdirSync(charOut, { recursive: true });
+
+    const sheets = {};
+    let anchor = 0.92; // sane default if Idle is somehow missing
+    const files = readdirSync(charSrc).filter((f) => f.toLowerCase().endsWith(".png"));
+
+    for (const file of files) {
+      const name = file.replace(/\.png$/i, "");
+      await sharp(join(charSrc, file)).webp(WEBP).toFile(join(charOut, name + ".webp"));
+      const png = PNG.sync.read(readFileSync(join(charSrc, file)));
+      if (png.width % COLS !== 0 || png.height % ROWS !== 0) {
+        console.warn(`  ! ${id}/${file} is ${png.width}x${png.height}, not a clean ${COLS}x${ROWS} grid`);
+      }
+      sheets[name] = { frames: frameCount(png) };
+      if (name === "Idle") anchor = anchorFraction(png);
+    }
+
+    manifest[id] = { anchor: Number(anchor.toFixed(4)), sheets };
+    console.log(`  ${id}: ${files.length} sheets, anchor ${manifest[id].anchor}`);
+  }
+}
 
 const manifest = {};
-const chars = readdirSync(SRC).filter((d) => isDir(join(SRC, d))).sort();
-
-for (const id of chars) {
-  const charSrc = join(SRC, id);
-  const charOut = join(OUT, id);
-  mkdirSync(charOut, { recursive: true });
-
-  const sheets = {};
-  let anchor = 0.92; // sane default if Idle is somehow missing
-  const files = readdirSync(charSrc).filter((f) => f.toLowerCase().endsWith(".png"));
-
-  for (const file of files) {
-    const name = file.replace(/\.png$/i, "");
-    await sharp(join(charSrc, file)).webp(WEBP).toFile(join(charOut, name + ".webp"));
-    const png = PNG.sync.read(readFileSync(join(charSrc, file)));
-    if (png.width !== COLS * CELL || png.height !== ROWS * CELL) {
-      console.warn(`  ! ${id}/${file} is ${png.width}x${png.height}, expected ${COLS * CELL}x${ROWS * CELL}`);
-    }
-    sheets[name] = { frames: frameCount(png) };
-    if (name === "Idle") anchor = anchorFraction(png);
-  }
-
-  manifest[id] = { anchor: Number(anchor.toFixed(4)), sheets };
-  console.log(`  ${id}: ${files.length} sheets, anchor ${manifest[id].anchor}`);
+await processPack(SRC, OUT, manifest);
+if (isDir(ENEMY_SRC)) {
+  console.log("Enemies pack:");
+  await processPack(ENEMY_SRC, ENEMY_OUT, manifest);
 }
 
 const banner = "// AUTO-GENERATED by scripts/build-sheets.mjs — do not edit by hand.\n";

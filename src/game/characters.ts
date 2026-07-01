@@ -90,6 +90,14 @@ export interface CharacterDef {
   /** Which projectile a ranged character fires. */
   projectile?: ProjectileType;
   stats?: CharStats;
+  /** Art pack folder under public/ (heroes = "characters", bad guys = "enemies"). */
+  pack?: "characters" | "enemies";
+  /**
+   * Which sheet-name table backs the art, if it differs from behaviour. The
+   * enemy pack uses the ranged naming (Attack1/2/3) for every character, so a
+   * melee-behaving enemy sets sheetSet:"ranged" to resolve its Attack1 art.
+   */
+  sheetSet?: Archetype;
 }
 
 /** The playable / spawnable roster (folder id -> display name + archetype + feel). */
@@ -103,6 +111,24 @@ export const ROSTER: CharacterDef[] = [
   { id: "7DeathKnight", name: "Death Knight", archetype: "melee", stats: { health: 135, speed: 0.88 } },
   { id: "8DarkLord", name: "Dark Lord", archetype: "ranged", projectile: "DeathSpell", stats: { health: 110, speed: 0.92 } },
   { id: "9Longbow", name: "Longbow", archetype: "ranged", projectile: "Arrow", stats: { health: 95, speed: 0.95, resourceRegen: 20 } },
+];
+
+/**
+ * The AI bad guys — a separate art pack (public/enemies/) that uses ranged-style
+ * sheet names for everyone, so melee-behaving enemies pin `sheetSet: "ranged"`.
+ * `archetype` here is *behaviour* (melee closes in; ranged kites + fires
+ * `projectile`). Base stats are per-enemy feel; waves scale them up.
+ */
+export const ENEMY_ROSTER: CharacterDef[] = [
+  { id: "1Brute", name: "Brute", archetype: "melee", pack: "enemies", sheetSet: "ranged", stats: { health: 90, speed: 0.85 } },
+  { id: "2DeathLord", name: "Death Lord", archetype: "ranged", projectile: "DeathSpell", pack: "enemies", sheetSet: "ranged", stats: { health: 100, speed: 0.9 } },
+  { id: "3DarkKnight", name: "Dark Knight", archetype: "melee", pack: "enemies", sheetSet: "ranged", stats: { health: 80, speed: 0.95 } },
+  { id: "4Berserker", name: "Berserker", archetype: "melee", pack: "enemies", sheetSet: "ranged", stats: { health: 65, speed: 1.2 } },
+  { id: "5Archer", name: "Archer", archetype: "ranged", projectile: "Arrow", pack: "enemies", sheetSet: "ranged", stats: { health: 55, speed: 1.05 } },
+  { id: "6Warrior", name: "Warrior", archetype: "melee", pack: "enemies", sheetSet: "ranged", stats: { health: 75, speed: 1.0 } },
+  { id: "7DarkArcher", name: "Dark Archer", archetype: "ranged", projectile: "FireArrow", pack: "enemies", sheetSet: "ranged", stats: { health: 58, speed: 1.1 } },
+  { id: "8Necromancer", name: "Necromancer", archetype: "ranged", projectile: "DeathSpell", pack: "enemies", sheetSet: "ranged", stats: { health: 60, speed: 0.95 } },
+  { id: "9Wizard", name: "Wizard", archetype: "ranged", projectile: "IceSpell", pack: "enemies", sheetSet: "ranged", stats: { health: 62, speed: 1.0 } },
 ];
 
 export interface ResolvedAnim {
@@ -128,21 +154,23 @@ export interface ResolvedCharacter {
  * (frame counts) into a ready-to-load animation set for one character.
  */
 export function resolveCharacter(id: string): ResolvedCharacter {
-  const def = ROSTER.find((c) => c.id === id);
+  const def = ROSTER.find((c) => c.id === id) ?? ENEMY_ROSTER.find((c) => c.id === id);
   if (!def) throw new Error(`Unknown character: ${id}`);
   const meta = SHEET_MANIFEST[id];
   if (!meta) {
     throw new Error(`No manifest for ${id} — run "npm run sheets".`);
   }
 
-  const table = { ...COMMON, ...(def.archetype === "melee" ? MELEE : RANGED) };
+  const pack = def.pack ?? "characters";
+  const sheetSet = def.sheetSet ?? def.archetype;
+  const table = { ...COMMON, ...(sheetSet === "melee" ? MELEE : RANGED) };
   const anims: Partial<Record<Action, ResolvedAnim>> = {};
 
   for (const [action, d] of Object.entries(table) as [Action, ActionDef][]) {
     const sheet = meta.sheets[d.sheet];
     if (!sheet) continue; // tolerate a character missing a sheet
     anims[action] = {
-      url: `/characters/${id}/${d.sheet}.webp`,
+      url: `/${pack}/${id}/${d.sheet}.webp`,
       fps: d.fps,
       loop: d.loop,
       frames: sheet.frames,

@@ -145,7 +145,7 @@ export class ProjectileSystem {
       if (p.ghost) continue; // visual-only; owner's client resolves the hit
 
       for (const c of combatants) {
-        if (c === p.source || !c.alive) continue;
+        if (c === p.source || !c.alive || c.team === p.source.team) continue;
         const dx = c.position.x - pos.x;
         const dz = c.position.z - pos.z;
         const r = p.radius + c.radius;

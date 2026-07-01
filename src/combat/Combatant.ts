@@ -9,6 +9,9 @@ import type { ProjectileType } from "../game/projectiles.ts";
 
 export type HitResult = "ignored" | "blocked" | "hit" | "killed";
 
+/** Which side a combatant fights for. Same-team members don't damage each other. */
+export type Team = "player" | "enemy";
+
 export interface HitInfo {
   damage: number;
   knockback: number;
@@ -56,9 +59,14 @@ export abstract class Combatant {
   health = 100;
   radius = PLAYER.radius;
 
+  /** Faction — attacks skip same-team targets (set by subclass/mode). */
+  team: Team = "player";
+
   alive = true;
   /** Set true while a shield is actively raised. */
   blocking = false;
+  /** Floating over-head health bar (off for the boss, which uses the DOM bar). */
+  showFloatingBar = true;
   protected blockArcCos = Math.cos(Math.PI / 2);
 
   protected iframeTimer = 0;
@@ -72,6 +80,8 @@ export abstract class Combatant {
   protected pendingMelee: MeleeQuery | null = null;
   /** A projectile waiting to be spawned this frame (consumed by the game). */
   protected pendingProjectile: ProjectileSpawn | null = null;
+  /** Extra projectiles to spawn this frame (e.g. a boss firing a fan). */
+  protected pendingProjectiles: ProjectileSpawn[] = [];
 
   constructor() {
     this.char.object.add(this.healthBar.group);
@@ -100,6 +110,13 @@ export abstract class Combatant {
   consumeProjectile(): ProjectileSpawn | null {
     const s = this.pendingProjectile;
     this.pendingProjectile = null;
+    return s;
+  }
+
+  consumeProjectiles(): readonly ProjectileSpawn[] {
+    if (this.pendingProjectiles.length === 0) return EMPTY_SPAWNS;
+    const s = this.pendingProjectiles;
+    this.pendingProjectiles = [];
     return s;
   }
 
@@ -154,7 +171,7 @@ export abstract class Combatant {
   /** Refresh the floating health bar (call after logic, with the camera). */
   refreshHealthBar(camera: THREE.Camera): void {
     this.healthBar.setFraction(this.health / this.maxHealth);
-    this.healthBar.setVisible(this.alive);
+    this.healthBar.setVisible(this.alive && this.showFloatingBar);
     this.healthBar.faceCamera(camera);
   }
 
@@ -166,3 +183,4 @@ export abstract class Combatant {
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
+const EMPTY_SPAWNS: readonly ProjectileSpawn[] = [];

@@ -34,6 +34,7 @@ export class RemotePlayer extends Combatant {
     this.maxHealth = COMBAT.player.maxHealth;
     this.health = this.maxHealth;
     this.radius = PLAYER.radius;
+    this.team = "enemy"; // in PvP the remote is your opponent (co-op will flip this)
   }
 
   async setCharacter(id: string): Promise<void> {

@@ -15,7 +15,7 @@ export function resolveMelee(
   const fwd = dirFromAngle(q.facing, _fwd);
 
   for (const t of targets) {
-    if (t === q.source || !t.alive) continue;
+    if (t === q.source || !t.alive || t.team === q.source.team) continue;
 
     const to = _to.copy(t.position).sub(q.origin);
     to.y = 0;

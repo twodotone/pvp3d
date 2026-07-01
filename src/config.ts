@@ -179,6 +179,86 @@ export const COMBAT = {
 } as const;
 
 /**
+ * AI enemy tuning (see src/entities/Enemy.ts). These are base numbers; per-wave
+ * DifficultyProfiles scale health/damage/speed/cooldown on top of them. Ranged
+ * enemies fire with the shared COMBAT.ranged projectile params.
+ */
+export const ENEMY = {
+  baseSpeed: 5.2, // units/sec before per-class speed + wave multipliers
+  turnLerp: 10, // facing ease toward the target (per second)
+  spawnIFrames: 0.4,
+  cullSeconds: 1.6, // fallback despawn after death if the die anim never "finishes"
+  /** Boids-style separation so a horde spreads instead of stacking on the player. */
+  separationRadius: 1.7,
+  separationStrength: 0.9,
+  melee: {
+    anim: "attack1",
+    attackRange: 2.2, // stop + swing distance (plus the target's radius)
+    activeFrame: 8, // frame the hit registers — clear wind-up before it
+    arcDeg: 110,
+    damage: 9,
+    knockback: 7,
+    cooldown: 1.2, // min seconds between swings
+  },
+  ranged: {
+    anim: "attack1",
+    // Behaviour: hold ground and shoot; only close in when too far, and take a
+    // single short backstep (never a continuous backpedal) when crowded.
+    comfortMax: 11, // beyond this, close the distance (running toward the target)
+    personalSpace: 4.5, // if the target gets closer than this, take one backstep
+    fireSlack: 1.5, // may fire a little beyond comfortMax
+    cooldown: 1.9,
+    backstepTime: 0.32, // duration of a committed backstep (turn-to-move, ~1.7u)
+    backstepCd: 1.6, // min gap between backsteps, so they hold ground + fire
+  },
+} as const;
+
+/**
+ * Per-enemy-type personality, layered on the base AI + stats. Melee fields tune
+ * reach/damage/wind-up/cadence + two signatures: `lunge*` (leap into range) and
+ * `blockChance` (raise a shield between swings). `poiseWindow` is stagger
+ * resistance (high = marches through hits). Ranged fields tune spacing + fire
+ * rate. Anything omitted falls back to the ENEMY.melee / ENEMY.ranged defaults.
+ */
+export interface EnemyBehavior {
+  poiseWindow?: number;
+  // melee
+  attackRange?: number;
+  arcDeg?: number;
+  damage?: number;
+  knockback?: number;
+  activeFrame?: number; // hit frame — higher = slower, more telegraphed
+  cooldown?: number;
+  lungeSpeed?: number; // >0: leaps toward the target to close the last gap
+  lungeRange?: number; // triggers a lunge from within this distance
+  blockChance?: number; // 0..1 chance to raise a guard after a swing
+  // ranged
+  comfortMax?: number;
+  personalSpace?: number;
+  fireCooldown?: number;
+  backstepCd?: number;
+}
+
+export const ENEMY_BEHAVIORS: Record<string, EnemyBehavior> = {
+  // Brute — slow, heavy, unshakeable. Big telegraphed clobber.
+  "1Brute": { attackRange: 2.5, arcDeg: 120, damage: 16, knockback: 13, activeFrame: 10, cooldown: 1.9, poiseWindow: 1.7 },
+  // Dark Knight — patient elite: solid hits, often guards between them.
+  "3DarkKnight": { attackRange: 2.3, arcDeg: 100, damage: 13, knockback: 8, activeFrame: 8, cooldown: 1.4, poiseWindow: 0.9, blockChance: 0.4 },
+  // Berserker — reckless: fast light hits, leaps in, but easy to stagger.
+  "4Berserker": { attackRange: 2.2, arcDeg: 100, damage: 8, knockback: 5, activeFrame: 5, cooldown: 0.7, poiseWindow: 0.3, lungeSpeed: 13, lungeRange: 5.5 },
+  // Warrior — measured footsoldier that sometimes raises a shield.
+  "6Warrior": { attackRange: 2.2, arcDeg: 110, damage: 10, knockback: 7, activeFrame: 8, cooldown: 1.2, poiseWindow: 0.6, blockChance: 0.22 },
+  // Archer — the standard bow (baseline ranged feel).
+  "5Archer": { comfortMax: 11, personalSpace: 4.5, fireCooldown: 1.7, backstepCd: 1.5 },
+  // Dark Archer — skittish, rapid fire, gives ground more readily.
+  "7DarkArcher": { comfortMax: 10, personalSpace: 5, fireCooldown: 1.1, backstepCd: 1.1 },
+  // Necromancer — keeps well back, slow heavy casts.
+  "8Necromancer": { comfortMax: 13, personalSpace: 6, fireCooldown: 2.4, backstepCd: 2.0 },
+  // Wizard — mid-range caster.
+  "9Wizard": { comfortMax: 12, personalSpace: 5.5, fireCooldown: 2.0, backstepCd: 1.8 },
+};
+
+/**
  * Action economy: melee runs on STAMINA, casters/ranged on MANA (same mechanic,
  * different flavour). Attacks/skills/rolls cost it and it regenerates, so an
  * archer can't fire forever — this is the main anti-spam lever. Per-skill costs

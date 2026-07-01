@@ -38,6 +38,8 @@ export class Player extends Combatant {
 
   private spawnPoint = new THREE.Vector3();
   characterId = "1Knight";
+  /** When false (wave mode), death is handled by the WaveDirector (lives), not a timed self-respawn. */
+  autoRespawn = true;
   private archetype: Archetype = "melee";
   private projectileType?: ProjectileType;
 
@@ -465,10 +467,12 @@ export class Player extends Combatant {
   }
 
   private updateDead(): void {
-    if (this.stateTime >= 3) this.respawn();
+    if (this.autoRespawn && this.stateTime >= 3) this.respawn();
   }
 
-  private respawn(): void {
+  /** Revive at the last spawn point (or `at`, which also becomes the new spawn). */
+  respawn(at?: THREE.Vector3): void {
+    if (at) this.spawnPoint.copy(at);
     this.health = this.maxHealth;
     this.alive = true;
     this.knockVel.set(0, 0, 0);

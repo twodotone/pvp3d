@@ -20,19 +20,56 @@ interface Burst {
   age: number;
   life: number;
 }
+interface Telegraph {
+  mesh: THREE.Mesh;
+  mat: THREE.MeshBasicMaterial;
+  age: number;
+  life: number;
+}
 
 class Feedback {
   private scene: THREE.Scene | null = null;
   private local: Combatant | null = null;
   private feedEl: HTMLElement | null = null;
+  private bannerEl: HTMLElement | null = null;
   private numbers: DamageNum[] = [];
   private bursts: Burst[] = [];
+  private telegraphs: Telegraph[] = [];
   private shakeAmt = 0;
 
   init(scene: THREE.Scene, local: Combatant): void {
     this.scene = scene;
     this.local = local;
     this.feedEl = document.getElementById("killfeed");
+    this.bannerEl = document.getElementById("banner");
+  }
+
+  /** Big center-screen announce (wave start / victory / defeat). */
+  banner(text: string): void {
+    if (!this.bannerEl) return;
+    this.bannerEl.textContent = text;
+    this.bannerEl.classList.remove("show");
+    void this.bannerEl.offsetWidth; // reflow so the CSS animation restarts
+    this.bannerEl.classList.add("show");
+  }
+
+  /** A red danger disc on the ground that pulses over an incoming AoE's wind-up. */
+  telegraph(pos: THREE.Vector3, radius: number, dur: number): void {
+    if (!this.scene) return;
+    const geo = new THREE.CircleGeometry(radius, 32);
+    geo.rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xff3b30,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(pos.x, 0.06, pos.z);
+    mesh.renderOrder = 2;
+    this.scene.add(mesh);
+    this.telegraphs.push({ mesh, mat, age: 0, life: dur });
   }
 
   // --- Events -----------------------------------------------------------
@@ -84,6 +121,20 @@ class Feedback {
         b.mesh.geometry.dispose();
         b.mat.dispose();
         this.bursts.splice(i, 1);
+      }
+    }
+
+    for (let i = this.telegraphs.length - 1; i >= 0; i--) {
+      const g = this.telegraphs[i];
+      g.age += dt;
+      const t = g.age / g.life;
+      // Pulse, then flare bright right before the hit lands.
+      g.mat.opacity = 0.18 + 0.16 * Math.abs(Math.sin(g.age * 12)) + t * t * 0.4;
+      if (g.age >= g.life) {
+        this.scene?.remove(g.mesh);
+        g.mesh.geometry.dispose();
+        g.mat.dispose();
+        this.telegraphs.splice(i, 1);
       }
     }
   }

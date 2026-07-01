@@ -135,6 +135,8 @@
 
       /* keep the desktop chrome above the touch zones, and tappable */
       #hud, #netbar { z-index: 1000; }
+      /* netbar sits above the run overlay so Play Online stays reachable */
+      #netbar { z-index: 1300; }
 
       /* ---- Touch / mobile ---- */
       html, body { touch-action: none; overscroll-behavior: none; }
@@ -191,7 +193,7 @@
         box-shadow: inset 0 0 150px 36px rgba(190, 20, 20, 0.9);
       }
       #killfeed {
-        position: fixed; top: 46px; left: 50%; transform: translateX(-50%);
+        position: fixed; top: 76px; left: 50%; transform: translateX(-50%);
         display: flex; flex-direction: column; align-items: center; gap: 4px;
         pointer-events: none; z-index: 1000;
         font: 13px ui-monospace, Menlo, Consolas, monospace;
@@ -205,6 +207,80 @@
         from { opacity: 0; transform: translateY(-6px); }
         to { opacity: 1; transform: none; }
       }
+
+      /* ---- PvE run: boss bar, wave banner, victory/defeat overlay ---- */
+      #bossbar {
+        position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+        width: min(60vw, 520px); display: none; z-index: 1000;
+        pointer-events: none; text-align: center;
+      }
+      #boss-name {
+        margin-bottom: 4px; color: #ffb3b3; letter-spacing: 2px;
+        font: 13px ui-monospace, Menlo, Consolas, monospace;
+        text-shadow: 0 1px 3px #000;
+      }
+      .boss-track {
+        height: 12px; border-radius: 6px; overflow: hidden;
+        background: rgba(10, 12, 18, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      #boss-fill {
+        height: 100%; width: 100%;
+        background: linear-gradient(90deg, #7a1020, #d0263e);
+        transition: width 0.1s linear;
+      }
+
+      #banner {
+        position: fixed; top: 30%; left: 50%; transform: translateX(-50%);
+        z-index: 1100; pointer-events: none; opacity: 0; white-space: nowrap;
+        color: #f4f6fb; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+        font: 700 clamp(28px, 6vw, 46px) ui-monospace, Menlo, Consolas, monospace;
+      }
+      #banner.show { animation: bannerPop 2.2s ease-out forwards; }
+      @keyframes bannerPop {
+        0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+        14% { opacity: 1; transform: translateX(-50%) scale(1); }
+        75% { opacity: 1; }
+        100% { opacity: 0; transform: translateX(-50%) scale(1.05); }
+      }
+
+      #run-overlay {
+        position: fixed; inset: 0; z-index: 1200; display: none;
+        flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+        background: rgba(6, 8, 12, 0.72);
+      }
+      #run-title {
+        font: 800 clamp(40px, 9vw, 64px) ui-monospace, Menlo, Consolas, monospace;
+        text-shadow: 0 3px 16px #000;
+      }
+      #run-sub { color: #cfd3dc; font: 16px ui-monospace, Menlo, Consolas, monospace; }
+
+      #charselect {
+        display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+        max-width: 660px; margin: 6px 12px;
+      }
+      .hero-card {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        width: 96px; padding: 8px 6px 6px; cursor: pointer;
+        background: rgba(20, 24, 34, 0.7); border: 2px solid #445; border-radius: 10px;
+        color: #cfd3dc; font: 12px ui-monospace, Menlo, Consolas, monospace;
+      }
+      .hero-card:hover { border-color: #778; }
+      .hero-card.selected { border-color: #2b5cff; background: rgba(43, 92, 255, 0.18); color: #fff; }
+      .hero-portrait {
+        width: 76px; height: 76px;
+        background-size: 1500% 800%; /* 15 cols x 8 rows */
+        background-position: 0% 28.571%; /* col 0, row 2 (front-facing idle) */
+        background-repeat: no-repeat;
+      }
+      .hero-name { text-align: center; }
+
+      #run-retry {
+        margin-top: 8px; background: #2b5cff; border: none; border-radius: 8px;
+        color: #fff; padding: 12px 28px; cursor: pointer;
+        font: 600 18px ui-monospace, Menlo, Consolas, monospace;
+      }
+      #run-retry:hover { background: #4470ff; }
 
       #rotate { display: none; }
       @media (orientation: portrait) {
@@ -221,7 +297,15 @@
     <div id="app"></div>
     <div id="rotate">↻ &nbsp;Rotate your device to landscape</div>
     <div id="vignette"></div>
+    <div id="bossbar"><div id="boss-name">DEATH LORD</div><div class="boss-track"><div id="boss-fill"></div></div></div>
+    <div id="banner"></div>
     <div id="killfeed"></div>
+    <div id="run-overlay">
+      <div id="run-title"></div>
+      <div id="run-sub"></div>
+      <div id="charselect"></div>
+      <button id="run-retry">Retry</button>
+    </div>
     <div id="hud"></div>
     <div id="resourcebar"><div id="resource-fill"></div></div>
     <div id="skillbar"></div>

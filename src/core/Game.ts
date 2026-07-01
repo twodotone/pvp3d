@@ -2,14 +2,14 @@ import * as THREE from "three";
 import { CAMERA, WORLD, NET, SPAWNS, SOFTLOCK } from "../config.ts";
 import { Arena } from "../world/Arena.ts";
 import { Player } from "../entities/Player.ts";
-import { Dummy } from "../entities/Dummy.ts";
 import { RemotePlayer } from "../entities/RemotePlayer.ts";
+import { WaveDirector } from "../game/WaveDirector.ts";
 import { Combatant } from "../combat/Combatant.ts";
 import { NetClient } from "../net/NetClient.ts";
 import type { ProjectileMsg } from "../net/protocol.ts";
 import { resolveMelee } from "../combat/melee.ts";
 import { ProjectileSystem } from "../combat/Projectile.ts";
-import { ROSTER } from "../game/characters.ts";
+import { ROSTER, ENEMY_ROSTER } from "../game/characters.ts";
 import {
   PROJECTILE_ANGLE_OFFSET,
   type ProjectileType,
@@ -25,7 +25,7 @@ import { DIR_ROW_OFFSET } from "../render/BillboardCharacter.ts";
 
 /**
  * Owns the renderer, scene, isometric camera and the main loop. Wires the
- * greybox arena, the player, the dummies (offline sandbox) and online PvP.
+ * greybox arena, the player, the PvE wave run (WaveDirector) and online PvP.
  */
 export class Game {
   private renderer: THREE.WebGLRenderer;
@@ -35,15 +35,24 @@ export class Game {
 
   private arena: Arena;
   private player: Player;
-  private dummies: Dummy[] = [];
+  private director!: WaveDirector;
   private combatants: Combatant[] = [];
   private projectiles: ProjectileSystem;
   private input: Input;
+  /** Cover line-of-sight predicate handed to enemy AI (bound once). */
+  private blocked = (x: number, y: number, z: number) => this.arena.blocksProjectile(x, y, z);
 
   private camTarget = new THREE.Vector3();
   private hud = document.getElementById("hud")!;
   private resourceFill = document.getElementById("resource-fill")!;
   private vignette = document.getElementById("vignette")!;
+  private bossBar = document.getElementById("bossbar")!;
+  private bossFill = document.getElementById("boss-fill")!;
+  private overlay = document.getElementById("run-overlay")!;
+  private overlayTitle = document.getElementById("run-title")!;
+  private overlaySub = document.getElementById("run-sub")!;
+  private retryBtn = document.getElementById("run-retry") as HTMLButtonElement;
+  private selectedCharId = ROSTER[0].id;
   private fpsSmoothed = 60;
 
   private reticle: THREE.Mesh;
@@ -91,19 +100,9 @@ export class Game {
     this.player = new Player();
     this.scene.add(this.player.object);
 
-    const dummySpawns: [THREE.Vector3, string][] = [
-      [new THREE.Vector3(-5, 0, -3), "2Archer"],
-      [new THREE.Vector3(5, 0, -3), "3Wizard"],
-      [new THREE.Vector3(0, 0, -8), "7DeathKnight"],
-    ];
-    for (const [p, id] of dummySpawns) {
-      const d = new Dummy(p, id);
-      this.dummies.push(d);
-      this.scene.add(d.object);
-    }
-
-    this.combatants = [this.player, ...this.dummies];
+    this.combatants = [this.player];
     this.projectiles = new ProjectileSystem(this.scene);
+    this.director = new WaveDirector(this.scene, this.player, () => this.rebuildCombatants());
 
     // Soft-lock target reticle (a ground ring under the locked enemy).
     const ringGeo = new THREE.RingGeometry(0.5, 0.62, 28);
@@ -129,6 +128,8 @@ export class Game {
     this.touchControls = new TouchControls(this.input, this.player);
     feedback.init(this.scene, this.player);
     sound.init(this.player);
+    if (this.retryBtn) this.retryBtn.onclick = () => this.startRun();
+    this.buildCharSelect();
     window.addEventListener("resize", this.onResize);
   }
 
@@ -177,7 +178,7 @@ export class Game {
   private goOnline(room: string): void {
     this.online = true;
     history.replaceState(null, "", `?room=${encodeURIComponent(room)}`);
-    for (const d of this.dummies) d.object.visible = false;
+    this.director.stop(); // leave the PvE run; free-play PvP takes over
     this.netStatus.textContent = "connecting…";
     this.net = new NetClient({
       onAssign: (_self, slot, peers) => {
@@ -224,7 +225,7 @@ export class Game {
     this.net = undefined;
     this.online = false;
     for (const id of [...this.remotes.keys()]) this.removeRemote(id);
-    for (const d of this.dummies) d.object.visible = true;
+    this.director.start(); // back to the PvE wave run
     this.netBtn.textContent = "Play Online";
     this.netStatus.textContent = "";
     this.rebuildCombatants();
@@ -254,7 +255,47 @@ export class Game {
   private rebuildCombatants(): void {
     this.combatants = this.online
       ? [this.player, ...this.remotes.values()]
-      : [this.player, ...this.dummies];
+      : [this.player, ...this.director.enemies];
+  }
+
+  /** Build the character-select grid inside the run overlay (hero portraits). */
+  private buildCharSelect(): void {
+    const host = document.getElementById("charselect");
+    if (!host) return;
+    const cards: HTMLElement[] = [];
+    for (const c of ROSTER) {
+      const card = document.createElement("button");
+      card.className = "hero-card" + (c.id === this.selectedCharId ? " selected" : "");
+      const portrait = document.createElement("div");
+      portrait.className = "hero-portrait";
+      portrait.style.backgroundImage = `url(/characters/${c.id}/Idle.webp)`;
+      const name = document.createElement("div");
+      name.className = "hero-name";
+      name.textContent = c.name;
+      card.append(portrait, name);
+      card.onclick = () => {
+        this.selectedCharId = c.id;
+        for (const el of cards) el.classList.toggle("selected", el === card);
+      };
+      cards.push(card);
+      host.appendChild(card);
+    }
+  }
+
+  /** Start (or restart) the PvE run, loading the selected hero first. */
+  private startRun(): void {
+    if (this.online) return;
+    void this.launchRun();
+  }
+
+  private async launchRun(): Promise<void> {
+    this.retryBtn.disabled = true;
+    if (this.selectedCharId !== this.player.characterId) {
+      await this.player.setCharacter(this.selectedCharId);
+    }
+    this.retryBtn.disabled = false;
+    this.director.start();
+    this.overlay.style.display = "none";
   }
 
   private spawnGhostProjectile(m: ProjectileMsg): void {
@@ -309,7 +350,7 @@ export class Game {
     let best: Combatant | null = null;
     let bestScore = Infinity;
     for (const c of this.combatants) {
-      if (c === p || !c.alive) continue;
+      if (c === p || !c.alive || c.team === p.team) continue;
       const tx = c.position.x - pp.x;
       const tz = c.position.z - pp.z;
       const td = Math.hypot(tx, tz);
@@ -378,14 +419,12 @@ export class Game {
   async start(): Promise<void> {
     const projTypes = [
       ...ROSTER.map((c) => c.projectile).filter((p): p is ProjectileType => !!p),
+      ...ENEMY_ROSTER.map((c) => c.projectile).filter((p): p is ProjectileType => !!p),
       ...SKILL_PROJECTILES,
     ];
-    await Promise.all([
-      this.player.load(),
-      ...this.dummies.map((d) => d.load()),
-      preloadProjectiles(projTypes),
-    ]);
-    this.player.spawn(new THREE.Vector3(0, 0, 7));
+    await Promise.all([this.player.load(), preloadProjectiles(projTypes)]);
+    this.player.spawn(new THREE.Vector3(0, 0, 8));
+    // The run waits on the Start overlay; the director stays idle until then.
 
     // Snap camera onto the player before the first frame.
     this.camTarget.copy(this.player.object.position);
@@ -415,20 +454,28 @@ export class Game {
     if (this.input.wasPressed("Comma")) PROJECTILE_ANGLE_OFFSET.value -= Math.PI / 8;
     if (this.input.wasPressed("Period")) PROJECTILE_ANGLE_OFFSET.value += Math.PI / 8;
     if (this.input.wasPressed("KeyM")) this.setMuteLabel(sound.toggleMute());
+    // Enter starts/restarts the PvE run (from the Start/Victory/Defeat overlay).
+    if (this.input.wasPressed("Enter") && !this.online) {
+      const s = this.director.view.status;
+      if (s === "idle" || s === "victory" || s === "defeat") this.startRun();
+    }
 
     this.updateSoftTarget();
     this.player.update(dt, this.camera, this.input);
     if (this.online) {
       for (const r of this.remotes.values()) r.update(dt, this.camera);
     } else {
-      for (const d of this.dummies) d.update(dt, this.player, this.camera);
+      this.director.update(dt);
+      for (const e of this.director.enemies) {
+        e.update(dt, this.combatants, this.camera, this.blocked);
+      }
     }
 
     // Keep locally-controlled bodies out of the cover boxes (remotes are
     // collision-resolved on their own client).
     this.arena.resolveCollision(this.player);
     if (!this.online) {
-      for (const d of this.dummies) this.arena.resolveCollision(d);
+      for (const e of this.director.enemies) this.arena.resolveCollision(e);
     }
 
     this.input.endFrame();
@@ -450,6 +497,8 @@ export class Game {
           });
         }
       }
+      // A multi-shot volley (boss fan) — spawn each; PvE-only, so no net mirror.
+      for (const s2 of c.consumeProjectiles()) this.projectiles.spawn(s2);
     }
 
     // Broadcast our own state at a fixed tick rate.
@@ -522,15 +571,58 @@ export class Game {
     const hpFrac = p.health / p.maxHealth;
     this.vignette.style.opacity =
       p.alive && hpFrac < 0.35 ? String((1 - hpFrac / 0.35) * 0.55) : "0";
+
+    let statusLine: string;
+    if (this.online) {
+      statusLine = `online (${this.remotes.size + 1})`;
+      this.bossBar.style.display = "none";
+      this.overlay.style.display = "none";
+    } else {
+      statusLine = this.updateRunHud();
+    }
+
     this.hud.textContent =
       `fps   ${this.fpsSmoothed.toFixed(0)}\n` +
       `char  ${charName}  [1-9]\n` +
       `hp    ${Math.ceil(p.health)}/${p.maxHealth}\n` +
       `${r.name}  ${Math.ceil(p.resource)}/${p.maxResource}\n` +
-      `state ${p.debugState}\n` +
-      `anim  ${p.char.currentAnim}\n` +
-      `${this.online ? `online (${this.remotes.size + 1})` : `enemies ${this.dummies.filter((d) => d.alive).length}/${this.dummies.length}`}\n` +
-      `shots ${this.projectiles.count}\n` +
-      `dirΔ ${DIR_ROW_OFFSET.value}  projΔ ${PROJECTILE_ANGLE_OFFSET.value.toFixed(2)}`;
+      `${statusLine}\n` +
+      `shots ${this.projectiles.count}`;
+  }
+
+  /** Drive the wave HUD (boss bar + victory/defeat overlay); returns the status line. */
+  private updateRunHud(): string {
+    const v = this.director.view;
+
+    if (v.bossHpFrac != null) {
+      this.bossBar.style.display = "block";
+      this.bossFill.style.width = `${Math.max(0, Math.min(1, v.bossHpFrac)) * 100}%`;
+    } else {
+      this.bossBar.style.display = "none";
+    }
+
+    if (v.status === "idle") {
+      this.overlay.style.display = "flex";
+      this.overlayTitle.textContent = "Wave Survival";
+      this.overlayTitle.style.color = "#e7ebf3";
+      this.overlaySub.textContent = "Choose your fighter — survive 5 waves, then the Death Lord.";
+      this.retryBtn.textContent = "Start Run";
+      return "press Start";
+    }
+    if (v.status === "victory" || v.status === "defeat") {
+      const win = v.status === "victory";
+      this.overlay.style.display = "flex";
+      this.overlayTitle.textContent = win ? "Victory" : "Defeat";
+      this.overlayTitle.style.color = win ? "#8fe388" : "#ff6b6b";
+      this.overlaySub.textContent = win
+        ? "The Death Lord has fallen."
+        : `You reached wave ${v.wave} of ${v.totalWaves}.`;
+      this.retryBtn.textContent = "Retry";
+    } else {
+      this.overlay.style.display = "none";
+    }
+
+    const hearts = "♥".repeat(Math.max(0, v.lives)) || "—";
+    return `wave  ${v.wave}/${v.totalWaves}   foes ${v.enemiesLeft}   ${hearts}`;
   }
 }
